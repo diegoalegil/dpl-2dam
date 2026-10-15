@@ -2,14 +2,41 @@
 
 Apuntes y trabajo del módulo DPL (curso 2026-2027).
 
-## Apuntes
+## Organización
 
-1. [La asignatura](apuntes/01-asignatura.md): cómo se trabaja en clase, herramientas y temas.
-2. [Repo de clase gitanddocs](apuntes/02-repo-gitanddocs.md): qué hay en el repo de la organización monium y su historial.
-3. [Git, GitHub, issues y PR](apuntes/03-git-github.md): comandos y flujo de trabajo del equipo.
-4. [uv y Zensical](apuntes/04-uv-zensical.md): chuleta de comandos y configuración.
-5. [Tareas pendientes](apuntes/05-pendientes.md): issues abiertas e ideas de issues.
-6. [Trabajar desde casa](apuntes/06-trabajar-en-casa.md): cómo dejar el ordenador de casa listo.
+Una carpeta por trimestre y, dentro de cada una, una carpeta por examen con lo que entra en él. Las carpetas de los exámenes se van creando según avanza el curso.
+
+```text
+dpl-2dam/
+├── general/            lo que sirve para todo el curso
+├── 1er-trimestre/
+│   └── 1er-examen/
+├── 2do-trimestre/
+└── 3er-trimestre/
+```
+
+## General
+
+- [La asignatura](general/asignatura.md): cómo se trabaja en clase, herramientas y temas.
+- [Trabajar desde casa](general/trabajar-en-casa.md): cómo dejar el ordenador de casa listo.
+
+## 1er trimestre
+
+- [Tareas pendientes](1er-trimestre/pendientes.md): issues abiertas e ideas de issues.
+
+### 1er examen
+
+1. [Repo de clase gitanddocs](1er-trimestre/1er-examen/01-repo-gitanddocs.md): qué hay en el repo de la organización monium y su historial.
+2. [Git, GitHub, issues y PR](1er-trimestre/1er-examen/02-git-github.md): comandos y flujo de trabajo del equipo.
+3. [uv y Zensical](1er-trimestre/1er-examen/03-uv-zensical.md): chuleta de comandos y configuración.
+
+## 2do trimestre
+
+Sin empezar.
+
+## 3er trimestre
+
+Sin empezar.
 
 ## Enlaces
 

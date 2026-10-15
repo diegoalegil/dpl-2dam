@@ -68,8 +68,8 @@ Por eso, en cuanto se acepta un PR, la web se actualiza sola.
 
 - **index.md** y **markdown.md**: las páginas de ejemplo que trae Zensical, en inglés. Enseñan los avisos (admonitions), el código y la sintaxis de Markdown.
 - **get-site.md**: cómo convertir los `.md` en una web HTML/CSS/JS. Se edita el Markdown, `uv run zensical build` lo genera en `site/` y `uv run zensical serve` sirve la vista previa en `http://localhost:8000` (con `-a localhost:8001` se cambia el puerto).
-- **trabajando-con-git.md**: guía de fork, clone, upstream, fetch/merge, ramas, commits y PR. Está resumida en [03-git-github.md](03-git-github.md).
-- **tema-visual.md**: cómo personalizar la web desde `zensical.toml`: colores, botón claro/oscuro, tipografías, idioma, logo y favicon, cabecera, pie de página y enlace al repo. Está resumida en [04-uv-zensical.md](04-uv-zensical.md).
+- **trabajando-con-git.md**: guía de fork, clone, upstream, fetch/merge, ramas, commits y PR. Está resumida en [02-git-github.md](02-git-github.md).
+- **tema-visual.md**: cómo personalizar la web desde `zensical.toml`: colores, botón claro/oscuro, tipografías, idioma, logo y favicon, cabecera, pie de página y enlace al repo. Está resumida en [03-uv-zensical.md](03-uv-zensical.md).
 
 ## README
 

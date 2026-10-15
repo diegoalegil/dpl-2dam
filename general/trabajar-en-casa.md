@@ -53,7 +53,7 @@ uv sync                  # descarga Python 3.14 si no lo tienes e instala Zensic
 uv run zensical serve    # abrir http://127.0.0.1:8000
 ```
 
-Si se trabaja con fork, se clona el fork y se añade `upstream` (ver [03-git-github.md](03-git-github.md)).
+Si se trabaja con fork, se clona el fork y se añade `upstream` (ver [02-git-github.md](../1er-trimestre/1er-examen/02-git-github.md)).
 
 ## 5. Rutina al empezar y al terminar
 
