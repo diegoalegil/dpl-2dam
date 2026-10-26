@@ -1,0 +1,68 @@
+root@servidor-ssh:/# systemctl start ssh
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to system scope bus via local transport: Host is down
+
+root@servidor-ssh:/# service ssh status
+sshd is not running ... failed!
+
+root@servidor-ssh:/# service ssh start
+Starting OpenBSD Secure Shell server: sshd.
+
+root@servidor-ssh:/# service ssh status
+sshd is running.
+
+root@servidor-ssh:/# ps -ef | grep [s]shd
+root        1064       1  0 19:16 ?        00:00:00 sshd: /usr/sbin/sshd [listener] 0 of 10-100 startups
+
+root@servidor-ssh:/# ss -tlnp
+bash: line 1: ss: command not found
+
+root@servidor-ssh:/# cat /etc/default/ssh
+# Default settings for openssh-server. This file is sourced by /bin/sh from
+# /etc/init.d/ssh.
+
+# Options to pass to sshd
+SSHD_OPTS=
+
+root@servidor-ssh:/# ls /var/log/
+README
+apt
+btmp
+dpkg.log
+journal
+lastlog
+private
+runit
+wtmp
+
+diego@diego:~$ nc -w 2 127.0.0.1 2222
+SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4
+
+diego@diego:~$ ssh-keyscan -p 2222 127.0.0.1
+# 127.0.0.1:2222 SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4
+# 127.0.0.1:2222 SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4
+# 127.0.0.1:2222 SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4
+# 127.0.0.1:2222 SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4
+# 127.0.0.1:2222 SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4
+[127.0.0.1]:2222 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCVKV5z4a4IocwtpNdek+agN20aCsonGtqqSGIiGgq0EQk3YO//ARCbCzVHE5rgDyqec2BPkpK6iftfdyzFTHYj1+srWDNSeIVg2RAdIoUOPbEwtoXUONZWD9EpqLnBbES9ja2yIv/uqIn7HY795Ez9eKtRutmFfGTrbJblg9gEHw6F5zD6BFKfFvXIQjan0F8Du4qhlSQMKekSPbBNTP9+V1Cah+yry/y4qw9IGao/s7V0PfrZ7ozs+HaWG8ZQYLUthUxOTZvyrBhYdRKQTAXTKGC7mXxkJfPzH8IZi4PVs9ZJp2neTVvKw1oyDfQNnuZBIqFfr73DpQFFX1CaGV9zPBf2/Czxr4WcjS5uZ9Sv0MDni8yXjEfPR8NCZbU/46KsNMh0e8AnOIHCEbRAliBnSoiZonTzZhblf6wmsAnilioQSkvw1etA7vdtvDgmS7h1PjZdXYzamZFrrT+IR3XxQ84HXuMno0EdCNFxwizIA3T5udPz+5sdV6yjhp5jCmE=
+[127.0.0.1]:2222 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBAsmEyBYuWK5KF9OLGTzqvTyfQ7xfjJUhZRUV7D7tE4iB3trIlallEm6heRMEIer03jzPSbYrNJdh/kAANUs/cQ=
+[127.0.0.1]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILPy7SFFAEGUtca9bnGrTwgP0c608q3SMZ9ECAnlGKyI
+
+root@servidor-ssh:/# apt install -y iproute2 > /dev/null 2>&1; ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                        
+LISTEN 0      128          0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=1064,fd=6))
+LISTEN 0      128             [::]:22           [::]:*    users:(("sshd",pid=1064,fd=7))
+
+root@servidor-ssh:/# sed -i 's|^SSHD_OPTS=.*|SSHD_OPTS="-E /var/log/sshd.log"|' /etc/default/ssh && grep SSHD_OPTS /etc/default/ssh
+SSHD_OPTS="-E /var/log/sshd.log"
+
+root@servidor-ssh:/# service ssh restart
+Restarting OpenBSD Secure Shell server: sshd.
+
+root@servidor-ssh:/# service ssh status
+sshd is running.
+
+root@servidor-ssh:/# cat /var/log/sshd.log
+Server listening on 0.0.0.0 port 22.
+Server listening on :: port 22.
+

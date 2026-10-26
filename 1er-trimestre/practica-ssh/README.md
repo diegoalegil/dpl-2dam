@@ -197,3 +197,86 @@ También se crea el usuario del sistema `sshd`, que no puede iniciar sesión (`/
 La versión del servidor es `OpenSSH_10.0p2 Debian-7+deb13u4`, más nueva que la de mi cliente (`OpenSSH_9.6p1`).
 
 Evidencia completa (con la salida entera de `apt`): [evidencias/02-instalar-ssh.txt](evidencias/02-instalar-ssh.txt)
+
+---
+
+## Paso 3: Arrancar el servicio y comprobar que escucha
+
+En una máquina normal se arranca con `systemctl`, que es lo que pone el PR #34. Lo pruebo:
+
+```text
+root@servidor-ssh:/# systemctl start ssh
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to system scope bus via local transport: Host is down
+```
+
+**Error:** `systemctl` habla con `systemd`, pero en el contenedor el proceso número 1 es `sleep infinity` y no `systemd`. Aunque `systemd` se instaló como dependencia en el paso 2, no está funcionando. **Solución:** usar `service`, que llama directamente al script de arranque `/etc/init.d/ssh`:
+
+```text
+root@servidor-ssh:/# service ssh status
+sshd is not running ... failed!
+
+root@servidor-ssh:/# service ssh start
+Starting OpenBSD Secure Shell server: sshd.
+
+root@servidor-ssh:/# service ssh status
+sshd is running.
+```
+
+Equivalencias que voy a usar en toda la práctica:
+
+| Acción | Máquina real (systemd) | Contenedor |
+|---|---|---|
+| Arrancar | `sudo systemctl start ssh` | `service ssh start` |
+| Estado | `sudo systemctl status ssh` | `service ssh status` |
+| Recargar configuración | `sudo systemctl reload ssh` | `service ssh reload` |
+| Reiniciar | `sudo systemctl restart ssh` | `service ssh restart` |
+| Que arranque al encender | `sudo systemctl enable ssh` | No aplica: el contenedor no tiene arranque del sistema |
+
+Compruebo que el proceso está en marcha y en qué puerto escucha. `ss` no viene instalado (`bash: line 1: ss: command not found`), así que instalo `iproute2`:
+
+```text
+root@servidor-ssh:/# ps -ef | grep [s]shd
+root        1064       1  0 19:16 ?        00:00:00 sshd: /usr/sbin/sshd [listener] 0 of 10-100 startups
+
+root@servidor-ssh:/# apt install -y iproute2
+root@servidor-ssh:/# ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      128          0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=1064,fd=6))
+LISTEN 0      128             [::]:22           [::]:*    users:(("sshd",pid=1064,fd=7))
+```
+
+`sshd` escucha en el puerto 22 en todas las interfaces, tanto IPv4 (`0.0.0.0`) como IPv6 (`[::]`).
+
+### Logs del servidor
+
+En una máquina real los logs de SSH se ven con `sudo journalctl -u ssh`. Aquí no hay `journald` ni `rsyslog` funcionando, así que los mensajes de `sshd` se perderían. Para poder ver qué pasa cuando algo falle, hago que `sshd` escriba sus logs en un fichero con la opción `-E`. El script de arranque lee las opciones de `/etc/default/ssh`:
+
+```text
+root@servidor-ssh:/# sed -i 's|^SSHD_OPTS=.*|SSHD_OPTS="-E /var/log/sshd.log"|' /etc/default/ssh
+root@servidor-ssh:/# service ssh restart
+Restarting OpenBSD Secure Shell server: sshd.
+root@servidor-ssh:/# cat /var/log/sshd.log
+Server listening on 0.0.0.0 port 22.
+Server listening on :: port 22.
+```
+
+### Prueba desde mi equipo
+
+Ahora desde mi equipo, el puerto 2222 ya contesta con el saludo del servidor SSH. Antes la conexión se cortaba:
+
+```text
+diego@diego:~$ nc -w 2 127.0.0.1 2222
+SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4
+```
+
+Con `ssh-keyscan` veo las claves públicas que me enseña la máquina, las mismas `ssh_host_*_key.pub` del paso 2:
+
+```text
+diego@diego:~$ ssh-keyscan -p 2222 127.0.0.1
+[127.0.0.1]:2222 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCVKV5z4a4I...
+[127.0.0.1]:2222 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAI...
+[127.0.0.1]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILPy7SFFAEGUtca9bnGrTwgP0c608q3SMZ9ECAnlGKyI
+```
+
+Evidencia completa: [evidencias/03-arrancar-servicio.txt](evidencias/03-arrancar-servicio.txt)
