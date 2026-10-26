@@ -1,0 +1,39 @@
+diego@diego:~$ ssh servidor-ssh
+Last login: Mon Oct 26 19:42:26 2026 from 172.17.0.1
+usuario@servidor-ssh:~$ ls -l /etc/ssh/sshd_config.d/
+total 0
+usuario@servidor-ssh:~$ sshd -t
+-bash: sshd: command not found
+usuario@servidor-ssh:~$ /usr/sbin/sshd -t
+sshd: no hostkeys available -- exiting.
+usuario@servidor-ssh:~$ sudo tee /etc/ssh/sshd_config.d/00-solo-claves.conf > /dev/null <<'EOF'
+> PubkeyAuthentication yes
+> PasswordAuthentication no
+> KbdInteractiveAuthentication no
+> PermitRootLogin no
+> EOF
+[sudo] password for usuario: 
+usuario@servidor-ssh:~$ cat /etc/ssh/sshd_config.d/00-solo-claves.conf
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+usuario@servidor-ssh:~$ ls -l /etc/ssh/sshd_config.d/
+total 4
+-rw-r--r-- 1 root root 102 Oct 26 19:48 00-solo-claves.conf
+usuario@servidor-ssh:~$ sudo sshd -t && echo 'sintaxis OK'
+sintaxis OK
+usuario@servidor-ssh:~$ sudo sshd -T | grep -E '^(pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication|permitrootlogin|permitemptypasswords|usepam) '
+usepam yes
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+permitemptypasswords no
+usuario@servidor-ssh:~$ sudo service ssh reload
+Reloading OpenBSD Secure Shell server's configuration: sshd.
+usuario@servidor-ssh:~$ sudo service ssh status
+sshd is running.
+usuario@servidor-ssh:~$ exit
+logout
+Connection to 127.0.0.1 closed.

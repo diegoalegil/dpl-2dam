@@ -586,3 +586,95 @@ servidor-ssh
 ```
 
 Evidencia completa: [evidencias/07-acceso-con-clave.txt](evidencias/07-acceso-con-clave.txt)
+
+---
+
+## Paso 8: Deshabilitar la autenticación por contraseña
+
+Ahora que la clave funciona, quito la contraseña. Lo hago entrando por SSH con mi usuario y usando `sudo`, que es como se administra un servidor de verdad. **Antes de tocar nada me aseguro de tener dos accesos abiertos:** la consola del contenedor (`docker exec -it servidor-ssh bash`) y una sesión SSH. Si me equivoco en la configuración y el SSH deja de funcionar, puedo arreglarlo desde la consola. En un servidor real, sería no cerrar la sesión SSH que ya tengo abierta.
+
+### Dónde poner la configuración
+
+Hay dos opciones:
+- **Editar `/etc/ssh/sshd_config`** y cambiar las líneas a mano. Es lo que dice el PR #34.
+- **Crear un archivo nuevo en `/etc/ssh/sshd_config.d/`.** Es lo que hace la guía del profe y lo que elijo yo.
+
+Elijo la segunda porque:
+1. No toco el archivo original del paquete. Si una actualización de `openssh-server` trae un `sshd_config` nuevo, no hay conflicto con mis cambios.
+2. Todos mis cambios están juntos en un archivo pequeño y se ve enseguida qué he cambiado.
+3. Como vi en el paso 2, el `Include` de `sshd_config.d/*.conf` está **al principio** de `sshd_config`, y en la configuración de `sshd` **gana el primer valor que se lee**. Así que lo que ponga aquí manda sobre lo que diga `sshd_config` más abajo. Además, los archivos de la carpeta se leen por orden alfabético. Lo llamo `00-solo-claves.conf` para que sea el primero aunque luego aparezcan otros (en muchas VPS viene un `50-cloud-init.conf` con `PasswordAuthentication yes`).
+
+### Errores al comprobar la sintaxis sin sudo
+
+Antes de cambiar nada quise probar el comando de comprobación de sintaxis, y me dio dos errores seguidos:
+
+```text
+usuario@servidor-ssh:~$ ls -l /etc/ssh/sshd_config.d/
+total 0
+usuario@servidor-ssh:~$ sshd -t
+-bash: sshd: command not found
+usuario@servidor-ssh:~$ /usr/sbin/sshd -t
+sshd: no hostkeys available -- exiting.
+```
+
+1. **`sshd: command not found`**: `sshd` está instalado (lo vi en el paso 2), pero en `/usr/sbin`. En Debian, el `PATH` de un usuario normal no incluye `/usr/sbin`, que es donde van los programas de administración. Con `sudo` sí funciona, porque `sudo` usa su propio `PATH` (`secure_path`), que incluye `/usr/sbin`.
+2. **`no hostkeys available -- exiting`**: con la ruta completa sí lo encuentra, pero no puede leer las claves privadas de la máquina (`ssh_host_*_key` tienen permisos `600` y son de root). El mensaje despista, porque las claves sí existen; lo que pasa es que no tengo permiso. **Solución:** todo lo relacionado con `sshd` se ejecuta con `sudo`.
+
+### Crear el archivo
+
+```text
+usuario@servidor-ssh:~$ sudo tee /etc/ssh/sshd_config.d/00-solo-claves.conf > /dev/null <<'EOF'
+> PubkeyAuthentication yes
+> PasswordAuthentication no
+> KbdInteractiveAuthentication no
+> PermitRootLogin no
+> EOF
+[sudo] password for usuario:
+```
+
+Uso `sudo tee` en vez de `sudo echo ... > archivo` porque la redirección `>` la hace mi shell sin permisos de root, y daría `Permission denied`. `tee` sí se ejecuta como root y escribe el archivo.
+
+| Directiva | Qué hace |
+|---|---|
+| `PubkeyAuthentication yes` | Deja entrar con clave pública. Ya era así por defecto, pero lo dejo escrito para que quede claro |
+| `PasswordAuthentication no` | **No deja entrar con contraseña** |
+| `KbdInteractiveAuthentication no` | Cierra la autenticación "teclado interactivo", que con PAM es otra forma de pedir la contraseña. En Debian ya venía a `no`, pero lo fijo por si cambia |
+| `PermitRootLogin no` | Root no puede entrar por SSH de ninguna forma, ni con clave. Para administrar ya tengo `usuario` con `sudo` |
+
+No pongo `ChallengeResponseAuthentication no`, que sale en algunas guías, porque es el nombre antiguo de `KbdInteractiveAuthentication` y en OpenSSH 10 solo se mantiene por compatibilidad.
+
+**Ojo:** `sudo` me sigue pidiendo la contraseña de `usuario`. Quitar la contraseña en SSH no quita la contraseña del usuario. Solo impide usarla para entrar por SSH. Por eso no hay que borrarla: hace falta para `sudo`.
+
+### Comprobar antes de aplicar
+
+```text
+usuario@servidor-ssh:~$ sudo sshd -t && echo 'sintaxis OK'
+sintaxis OK
+```
+
+`sshd -t` no dice nada si todo está bien. Le añado el `echo` para verlo claro. Si hubiera un error y recargara el servicio, `sshd` podría no volver a arrancar y me quedaría sin acceso. Por eso siempre `sshd -t` antes de recargar.
+
+Con `sshd -T` (en mayúscula) veo la configuración **efectiva**, la que resulta de juntar todos los archivos y los valores por defecto:
+
+```text
+usuario@servidor-ssh:~$ sudo sshd -T | grep -E '^(pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication|permitrootlogin|permitemptypasswords|usepam) '
+usepam yes
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+permitemptypasswords no
+```
+
+Esto es mejor que mirar los archivos uno a uno, porque te dice el valor que gana de verdad.
+
+### Aplicar
+
+```text
+usuario@servidor-ssh:~$ sudo service ssh reload
+Reloading OpenBSD Secure Shell server's configuration: sshd.
+```
+
+Uso `reload` y no `restart`: `reload` hace que `sshd` relea la configuración sin cortar las conexiones abiertas, y la sesión en la que estoy sigue viva. En una máquina real: `sudo systemctl reload ssh`.
+
+Evidencia completa: [evidencias/08-deshabilitar-contrasena.txt](evidencias/08-deshabilitar-contrasena.txt)
