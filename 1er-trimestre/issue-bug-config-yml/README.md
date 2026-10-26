@@ -55,8 +55,8 @@ El archivo llegó con el [PR #11](https://github.com/monium/gitanddocs/pull/11),
 2. Miro el archivo `config.yml` en GitHub
 3. Compruebo que nadie lo ha reportado
 4. Reproduzco el error en local
-5. Creo la issue con la plantilla "Reporte de Bug"
-6. Creo la rama `issue-N` desde la issue
+5. Creo la issue con la plantilla "Reporte de Bug": [#41](https://github.com/monium/gitanddocs/issues/41)
+6. Creo la rama `issue-41` desde la issue
 7. Arreglo el archivo en la rama
 8. Compruebo el YAML arreglado
 9. Abro el PR y pido revisión
@@ -171,3 +171,32 @@ Cómo se lee:
 - La línea 1 (`cat > ...`) no es `clave: valor`, así que YAML la toma como un texto suelto y cree que la línea 2 es la continuación de ese texto. Al llegar al `:` se encuentra un `clave: valor` en medio de un texto y protesta: "mapping values are not allowed here" (aquí no se permite un `clave: valor`).
 
 Con esto tengo el error exacto para ponerlo en la issue.
+
+## Paso 5: Creo la issue con la plantilla "Reporte de Bug"
+
+Issue creada: [#41 El config.yml de las plantillas de issue no es YAML válido y GitHub no lo aplica](https://github.com/monium/gitanddocs/issues/41), el 26/10/2026.
+
+![La issue #41 recién creada](evidencias/05-issue-41-creada.png)
+
+**Antes de escribirla decido qué hará el arreglo.** Quitar las líneas 1 y 7 está claro. Además el enlace "Pregunta general" lleva al foro general de GitHub (`github.com/orgs/community/discussions`), que no sirve para la clase. Hasta ahora no se veía por el fallo, pero con el arreglo empezará a salir en el menú de New issue. Por eso también cambio su url por la web de la documentación de clase, https://monium.github.io/gitanddocs/.
+
+Lo de las labels `task` y `security`, que piden dos plantillas y no existen en el repo, lo dejo fuera: es otro problema distinto y una issue debe tratar uno solo.
+
+**Cómo la creo**, todo en la web:
+
+1. Pestaña **Issues** > **New issue** > **Reporte de Bug**.
+2. Título y cuerpo siguiendo la plantilla: descripción, pasos para reproducir, comportamiento esperado y actual, evidencia, entorno y severidad. Añado una sección **Solución propuesta** y digo que me encargo yo. El texto completo está en [05-cuerpo-issue-41.md](evidencias/05-cuerpo-issue-41.md).
+3. En **Evidencia** arrastro al cuadro las capturas de los pasos 1 y 2, con una frase delante de cada una para que se entienda qué muestra. GitHub las sube y escribe una etiqueta `<img>` por cada una.
+4. Antes de crearla miro la pestaña **Preview** de arriba abajo: tabla, casillas, enlaces e imágenes.
+5. Con los botones de debajo del cuadro, antes de pulsar **Create**:
+
+| Botón | Valor | Para qué |
+|---|---|---|
+| Assignee | `diegoalegil` | Que se vea que la issue es mía y nadie más se ponga con ella |
+| Label | `bug` | La pone sola la plantilla |
+| Issue type | `Bug` | El tipo de issue que usa el repo |
+| Project | `DPL` | Que entre en el tablero Kanban de la clase |
+
+Al elegir el tablero salen dos campos suyos, **Priority** y **Effort**, que dejo vacíos.
+
+Al crearla, la automatización del tablero la pone en la columna **Sin asignar**. GitHub le da el número **41**, que usaré para la rama (`issue-41`) y para cerrarla desde el PR.
