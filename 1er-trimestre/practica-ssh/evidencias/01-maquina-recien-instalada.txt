@@ -1,0 +1,57 @@
+diego@diego:~$ docker pull debian:trixie
+trixie: Pulling from library/debian
+8d0037029946: Pulling fs layer
+8d0037029946: Download complete
+5ec37b31f678: Download complete
+8d0037029946: Pull complete
+Digest: sha256:4c25275446ca371766b8b093c696782eabce06263fccacb8d5d813b3dc44b308
+Status: Downloaded newer image for debian:trixie
+docker.io/library/debian:trixie
+
+diego@diego:~$ docker run -d --name servidor-ssh --hostname servidor-ssh -p 2222:22 debian:trixie sleep infinity
+01e50e4844b151be7418dcc569379864e1fcecbf93b568bc02b915c17cb45a53
+
+diego@diego:~$ docker ps --filter name=servidor-ssh --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+NAMES          IMAGE           STATUS                  PORTS
+servidor-ssh   debian:trixie   Up Less than a second   0.0.0.0:2222->22/tcp, [::]:2222->22/tcp
+
+diego@diego:~$ docker port servidor-ssh
+22/tcp -> 0.0.0.0:2222
+22/tcp -> [::]:2222
+
+# Entro en la consola de la máquina con: docker exec -it servidor-ssh bash
+
+root@servidor-ssh:/# cat /etc/os-release
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13.7
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+
+root@servidor-ssh:/# whoami; hostname
+root
+servidor-ssh
+
+root@servidor-ssh:/# which ssh sshd sudo
+
+root@servidor-ssh:/# sudo apt update
+bash: line 1: sudo: command not found
+
+root@servidor-ssh:/# ls /etc/ssh
+ls: cannot access '/etc/ssh': No such file or directory
+
+root@servidor-ssh:/# ps aux
+bash: line 1: ps: command not found
+
+root@servidor-ssh:/# dpkg -l | grep -c '^ii'
+78
+
+diego@diego:~$ ssh -p 2222 usuario@127.0.0.1
+kex_exchange_identification: read: Connection reset by peer
+Connection reset by 127.0.0.1 port 2222
+

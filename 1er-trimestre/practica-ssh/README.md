@@ -52,3 +52,66 @@ Después: análisis de errores, errores típicos provocados a propósito, compar
 
 - `README.md`: este informe.
 - `evidencias/`: la salida completa de los comandos de cada paso, tal cual salió en la terminal.
+
+---
+
+## Paso 1: Crear la máquina recién instalada
+
+Descargo la imagen oficial de Debian 13 y arranco el contenedor que hará de servidor:
+
+```bash
+docker pull debian:trixie
+docker run -d --name servidor-ssh --hostname servidor-ssh -p 2222:22 debian:trixie sleep infinity
+```
+
+| Parte | Para qué |
+|---|---|
+| `-d` | Arranca en segundo plano |
+| `--name servidor-ssh` | Nombre del contenedor para referirme a él |
+| `--hostname servidor-ssh` | Nombre de la máquina por dentro. Así en la terminal sé en qué máquina estoy |
+| `-p 2222:22` | El puerto 2222 de mi equipo va al 22 del contenedor, que es el de SSH |
+| `sleep infinity` | Proceso que no hace nada pero mantiene el contenedor encendido |
+
+Compruebo que está encendido y que el puerto está publicado:
+
+```text
+$ docker port servidor-ssh
+22/tcp -> 0.0.0.0:2222
+22/tcp -> [::]:2222
+```
+
+Entro en la consola de la máquina, que es como estar sentado delante de ella. Esta terminal la dejo abierta durante toda la práctica, porque si rompo el SSH es mi forma de entrar a arreglarlo:
+
+```bash
+docker exec -it servidor-ssh bash
+```
+
+Dentro compruebo qué sistema es y que de verdad está "recién instalado":
+
+```text
+root@servidor-ssh:/# cat /etc/os-release
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+...
+root@servidor-ssh:/# which ssh sshd sudo
+root@servidor-ssh:/# sudo apt update
+bash: line 1: sudo: command not found
+root@servidor-ssh:/# ls /etc/ssh
+ls: cannot access '/etc/ssh': No such file or directory
+```
+
+- `which` no devuelve nada: no hay ni cliente ni servidor SSH.
+- No existe `sudo`. En la consola soy `root`, así que de momento no me hace falta.
+- No existe `/etc/ssh`, así que todavía no hay ninguna configuración de SSH.
+- Solo hay 78 paquetes instalados (`dpkg -l | grep -c '^ii'`).
+
+Para tener una referencia de cómo falla, intento conectarme desde mi equipo antes de instalar nada:
+
+```text
+diego@diego:~$ ssh -p 2222 usuario@127.0.0.1
+kex_exchange_identification: read: Connection reset by peer
+Connection reset by 127.0.0.1 port 2222
+```
+
+**Primer error y por qué sale este y no otro:** esperaba un `Connection refused`, que es lo que pone en la guía de referencia cuando el servidor SSH no está arrancado. Pero sale `Connection reset by peer`. La causa es que el puerto 2222 de mi equipo sí está abierto, porque lo abre Docker para redirigirlo. Docker acepta la conexión, intenta pasarla al puerto 22 del contenedor, ahí no escucha nadie y corta. En una máquina real sin SSH sí saldría `Connection refused`. Esto me sirve luego para reconocer el fallo: si veo `kex_exchange_identification` justo al conectar, el problema está en el servidor y no en mis claves.
+
+Evidencia completa: [evidencias/01-maquina-recien-instalada.txt](evidencias/01-maquina-recien-instalada.txt)
