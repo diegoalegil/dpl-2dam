@@ -1,6 +1,6 @@
 # Issue: el config.yml de las plantillas de issue no es YAML válido
 
-En el repo de clase [monium/gitanddocs](https://github.com/monium/gitanddocs) he encontrado un fallo en la configuración de las plantillas de issue. En este informe voy apuntando cada paso: cómo lo compruebo, cómo lo reporto con una issue y cómo lo arreglo con un PR. Hago un commit por cada paso.
+En el repo de clase [monium/gitanddocs](https://github.com/monium/gitanddocs) he encontrado un fallo en la configuración de las plantillas de issue. En este informe voy apuntando cada paso: cómo lo compruebo, cómo lo reporto con una issue y cómo lo arreglo con un PR. Hago un commit por cada acción: normalmente uno por paso, y dos en el paso 6 (crear la rama y mover la tarjeta del tablero).
 
 ## Vocabulario
 
@@ -9,7 +9,7 @@ En el repo de clase [monium/gitanddocs](https://github.com/monium/gitanddocs) he
 | Plantilla de issue | El formulario que sale al pulsar **New issue** (Reporte de Bug, Solicitud de Funcionalidad...). Están en `.github/ISSUE_TEMPLATE/` |
 | `config.yml` | El archivo de esa carpeta que dice cómo se muestra el menú de plantillas |
 | YAML | El formato de ese archivo: líneas `clave: valor` y sangría para lo que va dentro de otra cosa. Es el mismo formato que el `compose.yaml` de Docker |
-| Heredoc | Truco de la terminal para escribir un archivo: `cat > archivo << 'EOF'`, el contenido y una línea final `EOF` |
+| Heredoc | Forma de pasarle a un comando varias líneas de texto. Con `cat > archivo << 'EOF'`, el contenido y una línea final `EOF`, `cat` escribe ese texto en el archivo |
 
 ## El fallo
 
@@ -47,7 +47,7 @@ El archivo llegó con el [PR #11](https://github.com/monium/gitanddocs/pull/11),
 |---|---|
 | Equipo | Mac con Apple Silicon |
 | GitHub | La web para la issue, la rama, el arreglo y el PR |
-| Terminal | git 2.54.0 y uv 0.13.1, solo para comprobar el YAML |
+| Terminal | git 2.54.0, gh 2.91.0 y uv 0.13.1 (con Python 3.14.8 dentro de `.venv`), para clonar el repo, traer la rama y comprobar el YAML |
 
 ## Pasos
 
@@ -85,7 +85,7 @@ Conclusión: GitHub no está aplicando `config.yml`. Esta captura me sirve como 
 
 ## Paso 2: Miro el archivo config.yml en GitHub
 
-Abro el archivo en la web: [`.github/ISSUE_TEMPLATE/config.yml`](https://github.com/monium/gitanddocs/blob/main/.github/ISSUE_TEMPLATE/config.yml).
+Abro el archivo en la web, en `main`. El enlace apunta al commit `dbcb5e1` para que siga enseñando el archivo roto después del arreglo: [`.github/ISSUE_TEMPLATE/config.yml`](https://github.com/monium/gitanddocs/blob/dbcb5e15f484e1cb0f12fbc1b0e6031d81ba56a3/.github/ISSUE_TEMPLATE/config.yml).
 
 ![El archivo config.yml en GitHub](evidencias/02-archivo-config-yml.png)
 
@@ -104,7 +104,7 @@ Antes de abrir una issue hay que mirar que no exista ya. Si no, dos personas aca
 Uso el buscador de la pestaña Issues y de la pestaña Pull requests:
 
 - `is:issue` busca solo issues y `is:pr` solo PR.
-- Quito `state:open`, que es lo que pone el buscador por defecto. Así salen también las cerradas, porque alguien podría haberlo reportado y haberla cerrado ya.
+- Quito el filtro de abiertas que pone el buscador por defecto (`state:open` en Issues, `is:open` en Pull requests). Así salen también las cerradas, porque alguien podría haberlo reportado y haberla cerrado ya.
 
 **Búsqueda 1:** [issues que mencionan config.yml](https://github.com/monium/gitanddocs/issues?q=is%3Aissue%20config.yml). No sale ninguna.
 
@@ -118,9 +118,9 @@ Uso el buscador de la pestaña Issues y de la pestaña Pull requests:
 
 ![Búsqueda de PR con config.yml](evidencias/03c-busqueda-pr-config-yml.png)
 
-Conclusión: **nadie ha reportado ni arreglado el fallo**. Puedo abrir la issue.
+Conclusión: **nadie ha reportado ni arreglado el fallo**. Puedo abrir la issue. Si hoy se repiten las búsquedas sale también mi issue #41, porque la creé después; las capturas muestran cómo estaba antes.
 
-Otra cosa que he visto: en las búsquedas de issues sale el cartel "Want to contribute to monium/gitanddocs? read the contributing guidelines". El repo no tiene ningún archivo con normas para contribuir. Lo dejo para la segunda tarea, la mejora.
+Otra cosa que he visto: en las búsquedas de issues sale el cartel "Want to contribute to monium/gitanddocs?" con un enlace a las "contributing guidelines". El repo no tiene ningún archivo con normas para contribuir. Lo dejo para la segunda tarea, la mejora.
 
 ## Paso 4: Reproduzco el error en local
 
@@ -136,7 +136,7 @@ echo "gitanddocs/" >> .git/info/exclude
 
 La barra de mi terminal lo confirma: el número de archivos sin seguimiento de mis apuntes pasa de 5 a 6 al clonar y vuelve a 5 después del `echo`.
 
-**4b. Instalo lo que pide el proyecto.** `--locked` instala exactamente las versiones de `uv.lock`, las mismas que mis compañeros. Crea la carpeta `.venv`, que el repo ignora en su `.gitignore`. Salida en [04b-uv-sync.txt](evidencias/04b-uv-sync.txt).
+**4b. Instalo lo que pide el proyecto.** `uv sync` instala las versiones exactas que hay en `uv.lock`, las mismas que mis compañeros. Con `--locked` además compruebo que `uv.lock` está al día con `pyproject.toml`: si no lo estuviera, da error en vez de cambiarlo. Crea la carpeta `.venv`, que el repo ignora en su `.gitignore`. Salida en [04b-uv-sync.txt](evidencias/04b-uv-sync.txt).
 
 ```bash
 cd gitanddocs
@@ -167,7 +167,7 @@ yaml.scanner.ScannerError: mapping values are not allowed here
 Cómo se lee:
 
 - Un error de Python (*traceback*) se lee **de abajo arriba**. Las líneas de en medio son el camino que ha seguido PyYAML por dentro y no me interesan.
-- **Línea 2, columna 21** es el `:` de `blank_issues_enabled:`, porque `blank_issues_enabled` tiene 20 letras.
+- **Línea 2, columna 21** es el `:` de `blank_issues_enabled:`, porque `blank_issues_enabled` ocupa 20 caracteres (18 letras y 2 guiones bajos).
 - La línea 1 (`cat > ...`) no es `clave: valor`, así que YAML la toma como un texto suelto y cree que la línea 2 es la continuación de ese texto. Al llegar al `:` se encuentra un `clave: valor` en medio de un texto y protesta: "mapping values are not allowed here" (aquí no se permite un `clave: valor`).
 
 Con esto tengo el error exacto para ponerlo en la issue.
@@ -178,7 +178,7 @@ Issue creada: [#41 El config.yml de las plantillas de issue no es YAML válido y
 
 ![La issue #41 recién creada](evidencias/05-issue-41-creada.png)
 
-**Antes de escribirla decido qué hará el arreglo.** Quitar las líneas 1 y 7 está claro. Además el enlace "Pregunta general" lleva al foro general de GitHub (`github.com/orgs/community/discussions`), que no sirve para la clase. Hasta ahora no se veía por el fallo, pero con el arreglo empezará a salir en el menú de New issue. Por eso también cambio su url por la web de la documentación de clase, https://monium.github.io/gitanddocs/.
+**Antes de escribirla decido qué hará el arreglo.** Quitar las líneas 1 y 7 está claro. Además el enlace "Pregunta general" lleva al foro general de GitHub (`github.com/orgs/community/discussions`), que no sirve para la clase. Hasta ahora no se veía por el fallo, pero con el arreglo empezará a salir en el menú de New issue. Por eso también cambio su URL por la web de la documentación de clase, https://monium.github.io/gitanddocs/.
 
 Lo de las labels `task` y `security`, que piden dos plantillas y no existen en el repo, lo dejo fuera: es otro problema distinto y una issue debe tratar uno solo.
 
@@ -203,7 +203,7 @@ Al crearla, la automatización del tablero la pone en la columna **Sin asignar**
 
 ## Paso 6: Creo la rama issue-41 desde la issue
 
-Una rama es una copia del proyecto donde cambio cosas sin tocar `main`, que es la versión buena que se publica. En el equipo las ramas se llaman `issue-` más el número de la issue.
+Una rama es una línea de trabajo aparte: un nombre que apunta a un commit y avanza con cada commit nuevo que hago en ella. Así cambio cosas sin tocar `main`, que es la versión buena que se publica. En el equipo las ramas se llaman `issue-` más el número de la issue.
 
 La creo desde la propia issue, así queda enlazada a ella: columna derecha > **Development** > **Create a branch**.
 
@@ -220,7 +220,7 @@ Al pulsar **Create branch** sale "Branch created". En **Development** aparece la
 
 ![Rama enlazada en Development](evidencias/06b-rama-enlazada.png)
 
-La rama `issue-41` apunta al mismo commit que `main` (`dbcb5e1`): de momento es una copia exacta.
+La rama `issue-41` apunta al mismo commit que `main` (`dbcb5e1`): de momento las dos tienen exactamente lo mismo.
 
 **Muevo la tarjeta en el tablero.** El Project DPL es un Kanban con 5 columnas:
 
@@ -238,7 +238,7 @@ La issue ya es mía y empiezo a trabajar, así que en la columna derecha, en **P
 
 ## Paso 7: Arreglo el archivo en la rama
 
-Lo hago con el editor de la web, en mi rama. Abro el archivo con `issue-41` en la dirección, en vez de `main`: [`config.yml` en `issue-41`](https://github.com/monium/gitanddocs/blob/issue-41/.github/ISSUE_TEMPLATE/config.yml). Antes de tocar nada miro arriba a la izquierda que el selector de rama dice `issue-41`. Los cambios nunca van directamente a `main`.
+Lo hago con el editor de la web, en mi rama. Abro el archivo con `issue-41` en la dirección, en vez de `main` (`https://github.com/monium/gitanddocs/blob/issue-41/.github/ISSUE_TEMPLATE/config.yml`). No lo dejo como enlace porque la rama se borra después del merge. Antes de tocar nada miro arriba a la izquierda que el selector de rama dice `issue-41`. Los cambios nunca van directamente a `main`.
 
 Pulso el lápiz (**Edit this file**) y dejo el archivo así:
 
@@ -267,9 +267,9 @@ Con **Commit changes...** relleno la ventana del commit:
 | Opción | Commit directly to the `issue-41` branch |
 
 - El `(#41)` del mensaje enlaza el commit con la issue.
-- La ventana trae un mensaje propuesto por GitHub. Lo sustituyo por el mío y no pulso el botón que lo vuelve a generar.
+- La ventana trae un mensaje propuesto por GitHub. Lo sustituyo por el mío.
 
-Resultado: commit `0507324` en `issue-41`, con 1 archivo cambiado (+1 −3). El archivo queda en 5 líneas y 189 bytes. Como lo hago desde la web, GitHub firma el commit y sale como **Verified**.
+Resultado: commit [`0507324`](https://github.com/monium/gitanddocs/commit/050732406b455f21b5c54b3b2dfa0bf2bbb642b8) en `issue-41`, con 1 archivo cambiado (+1 −3). El archivo queda en 5 líneas y 189 bytes. Como lo hago desde la web, GitHub firma el commit y sale como **Verified**.
 
 ![El archivo arreglado en la rama issue-41](evidencias/07-archivo-arreglado.png)
 
@@ -285,7 +285,7 @@ git fetch origin
 git switch issue-41
 ```
 
-- `git fetch origin` descarga las ramas y commits nuevos de GitHub sin tocar mis archivos. Sale `* [nueva rama] issue-41 -> origin/issue-41`. `origin` es el nombre que mi Mac le da a GitHub y `origin/issue-41` es su copia de la rama.
+- `git fetch origin` descarga las ramas y commits nuevos de GitHub sin tocar mis archivos. Sale `* [nueva rama] issue-41 -> origin/issue-41`. `origin` es el nombre que tiene en mi clon el repo de GitHub del que lo cloné, y `origin/issue-41` es la copia que guarda mi clon de cómo está esa rama en GitHub.
 - `git switch issue-41` me cambia a la rama. Sale `rama 'issue-41' configurada para rastrear 'origin/issue-41'`, es decir, mi rama local queda conectada con la de GitHub. GitHub sugiere `git checkout issue-41`, que hace lo mismo. `switch` es la forma moderna.
 
 **8b. Compruebo el arreglo.** Salida completa en [08b-comprobar-arreglo.txt](evidencias/08b-comprobar-arreglo.txt).
