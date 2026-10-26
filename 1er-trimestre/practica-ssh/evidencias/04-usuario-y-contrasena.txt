@@ -1,0 +1,69 @@
+root@servidor-ssh:/# adduser usuario
+New password: 
+Retype new password: 
+passwd: password updated successfully
+Changing the user information for usuario
+Enter the new value, or press ENTER for the default
+	Full Name []: 
+	Room Number []: 
+	Work Phone []: 
+	Home Phone []: 
+	Other []: 
+Is the information correct? [Y/n] Y
+
+root@servidor-ssh:/# adduser usuario sudo
+
+root@servidor-ssh:/# id usuario
+uid=1000(usuario) gid=1000(usuario) groups=1000(usuario),27(sudo),100(users)
+
+root@servidor-ssh:/# ls -la /home/usuario
+total 20
+drwx------ 2 usuario usuario 4096 Oct 26 19:23 .
+drwxr-xr-x 1 root    root    4096 Oct 26 19:23 ..
+-rw-r--r-- 1 usuario usuario  220 Oct 26 19:23 .bash_logout
+-rw-r--r-- 1 usuario usuario 3526 Oct 26 19:23 .bashrc
+-rw-r--r-- 1 usuario usuario  807 Oct 26 19:23 .profile
+
+root@servidor-ssh:/# ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+256 SHA256:R+jid5pFW9XZePboDEaB5rfDJjD43xGFiQPnwOT67ws root@servidor-ssh (ED25519)
+
+diego@diego:~$ ssh -p 2222 usuario@127.0.0.1
+The authenticity of host '[127.0.0.1]:2222 ([127.0.0.1]:2222)' can't be established.
+ED25519 key fingerprint is SHA256:R+jid5pFW9XZePboDEaB5rfDJjD43xGFiQPnwOT67ws.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[127.0.0.1]:2222' (ED25519) to the list of known hosts.
+usuario@127.0.0.1's password: 
+Linux servidor-ssh 7.0.0-38-generic #38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2 x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+usuario@servidor-ssh:~$ whoami; hostname; pwd
+usuario
+servidor-ssh
+/home/usuario
+usuario@servidor-ssh:~$ exit
+logout
+Connection to 127.0.0.1 closed.
+
+diego@diego:~$ grep -c '\[127.0.0.1\]:2222' ~/.ssh/known_hosts
+0
+
+diego@diego:~$ ssh-keygen -F '[127.0.0.1]:2222' -l
+# Host [127.0.0.1]:2222 found: line 4 
+[127.0.0.1]:2222 ED25519 SHA256:R+jid5pFW9XZePboDEaB5rfDJjD43xGFiQPnwOT67ws
+# Host [127.0.0.1]:2222 found: line 5 
+[127.0.0.1]:2222 RSA SHA256:JjDCW/CBPtUgknu7pB5MHjjl+aqDRSei/WUfTQ9d/2M
+# Host [127.0.0.1]:2222 found: line 6 
+[127.0.0.1]:2222 ECDSA SHA256:J+HWctrnxVx5uIWS0MMiI8tSQZfwg1mSxkbx6mwNd3U
+
+root@servidor-ssh:/# tail -5 /var/log/sshd.log
+Server listening on :: port 22.
+Accepted password for usuario from 172.17.0.1 port 59022 ssh2
+syslogin_perform_logout: logout() returned an error
+Received disconnect from 172.17.0.1 port 59022:11: disconnected by user
+Disconnected from user usuario 172.17.0.1 port 59022

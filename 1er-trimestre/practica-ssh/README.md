@@ -280,3 +280,94 @@ diego@diego:~$ ssh-keyscan -p 2222 127.0.0.1
 ```
 
 Evidencia completa: [evidencias/03-arrancar-servicio.txt](evidencias/03-arrancar-servicio.txt)
+
+---
+
+## Paso 4: Crear el usuario y primera conexión con contraseña
+
+No me voy a conectar como root. Debian ya lo bloquea por defecto (`PermitRootLogin prohibit-password`, visto en el paso 2) y, además, lo correcto es entrar con un usuario normal y usar `sudo` solo cuando haga falta. En la consola creo el usuario:
+
+```text
+root@servidor-ssh:/# adduser usuario
+New password:
+Retype new password:
+passwd: password updated successfully
+Changing the user information for usuario
+Enter the new value, or press ENTER for the default
+	Full Name []:
+	...
+Is the information correct? [Y/n] Y
+```
+
+Le pongo una contraseña (no la apunto aquí) y dejo el resto de datos en blanco. Después lo meto en el grupo `sudo` para que pueda administrar la máquina:
+
+```text
+root@servidor-ssh:/# adduser usuario sudo
+root@servidor-ssh:/# id usuario
+uid=1000(usuario) gid=1000(usuario) groups=1000(usuario),27(sudo),100(users)
+```
+
+Antes de conectarme apunto la huella de la clave ED25519 de la máquina. Así, cuando el cliente me pregunte si me fío, puedo comprobar que es la misma y que no me está suplantando nadie:
+
+```text
+root@servidor-ssh:/# ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+256 SHA256:R+jid5pFW9XZePboDEaB5rfDJjD43xGFiQPnwOT67ws root@servidor-ssh (ED25519)
+```
+
+Desde mi equipo, en otra terminal, hago la primera conexión:
+
+```text
+diego@diego:~$ ssh -p 2222 usuario@127.0.0.1
+The authenticity of host '[127.0.0.1]:2222 ([127.0.0.1]:2222)' can't be established.
+ED25519 key fingerprint is SHA256:R+jid5pFW9XZePboDEaB5rfDJjD43xGFiQPnwOT67ws.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[127.0.0.1]:2222' (ED25519) to the list of known hosts.
+usuario@127.0.0.1's password:
+Linux servidor-ssh 7.0.0-38-generic #38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2 x86_64
+...
+usuario@servidor-ssh:~$ whoami; hostname; pwd
+usuario
+servidor-ssh
+/home/usuario
+usuario@servidor-ssh:~$ exit
+logout
+Connection to 127.0.0.1 closed.
+```
+
+- La huella que me enseña (`SHA256:i5CZ...JMM`) es la misma que he visto en la consola, así que respondo `yes`.
+- Me pide la contraseña del usuario del servidor y entro.
+- El kernel que sale es el de mi Linux Mint (`7.0.0-38-generic ... Ubuntu`). Es normal: un contenedor usa el kernel del equipo anfitrión. Lo que es Debian es todo lo demás.
+
+En el log del servidor queda registrado que he entrado **con contraseña**:
+
+```text
+Accepted password for usuario from 172.17.0.1 port 59022 ssh2
+```
+
+La IP `172.17.0.1` es la de mi equipo vista desde la red de Docker.
+
+### Dónde se guarda la huella: known_hosts
+
+Al responder `yes`, el cliente guarda la clave de la máquina en `~/.ssh/known_hosts`. Las próximas veces la compara y, si cambia, avisa (lo provoco en el apartado de errores). Quise comprobarlo con `grep`, pero no lo encuentra:
+
+```text
+diego@diego:~$ grep -c '\[127.0.0.1\]:2222' ~/.ssh/known_hosts
+0
+```
+
+**Por qué:** en Linux Mint (igual que en Ubuntu) el cliente tiene `HashKnownHosts yes`, así que en `known_hosts` no se guarda el nombre del servidor en claro, sino un hash. Así, si alguien me roba el archivo, no sabe a qué servidores me conecto. La forma correcta de buscarlo es con `ssh-keygen -F`:
+
+```text
+diego@diego:~$ ssh-keygen -F '[127.0.0.1]:2222' -l
+# Host [127.0.0.1]:2222 found: line 4
+[127.0.0.1]:2222 ED25519 SHA256:R+jid5pFW9XZePboDEaB5rfDJjD43xGFiQPnwOT67ws
+# Host [127.0.0.1]:2222 found: line 5
+[127.0.0.1]:2222 RSA SHA256:JjDCW/CBPtUgknu7pB5MHjjl+aqDRSei/WUfTQ9d/2M
+# Host [127.0.0.1]:2222 found: line 6
+[127.0.0.1]:2222 ECDSA SHA256:J+HWctrnxVx5uIWS0MMiI8tSQZfwg1mSxkbx6mwNd3U
+```
+
+Aunque solo acepté la ED25519, el cliente ha guardado también la RSA y la ECDSA. Lo hace la opción `UpdateHostKeys`: cuando la conexión ya es de confianza, el servidor le pasa el resto de sus claves.
+
+Evidencia completa: [evidencias/04-usuario-y-contrasena.txt](evidencias/04-usuario-y-contrasena.txt)
