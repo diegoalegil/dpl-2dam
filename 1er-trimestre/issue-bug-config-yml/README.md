@@ -221,3 +221,17 @@ Al pulsar **Create branch** sale "Branch created". En **Development** aparece la
 ![Rama enlazada en Development](evidencias/06b-rama-enlazada.png)
 
 La rama `issue-41` apunta al mismo commit que `main` (`dbcb5e1`): de momento es una copia exacta.
+
+**Muevo la tarjeta en el tablero.** El Project DPL es un Kanban con 5 columnas:
+
+| Columna | Qué significa |
+|---|---|
+| Sin asignar | Nadie ha empezado |
+| Asignadas | Tiene dueño, pero aún no se ha empezado |
+| En progreso | Alguien está trabajando en ella |
+| En revisión | El PR está abierto, esperando revisión |
+| Terminado | El PR se ha fusionado y la issue está cerrada |
+
+La issue ya es mía y empiezo a trabajar, así que en la columna derecha, en **Projects** > **DPL** > **Status**, la paso de **Sin asignar** a **En progreso**. En la actividad de la issue queda apuntado: "moved this from Sin asignar to En progreso in DPL".
+
+![Status En progreso en el tablero DPL](evidencias/06c-tablero-en-progreso.png)
