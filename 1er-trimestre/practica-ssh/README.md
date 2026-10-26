@@ -760,3 +760,153 @@ La única que pone `Accepted` es la de la clave buena. El resto se cortan antes 
 El acceso remoto funciona solo con clave y la autenticación por contraseña ha quedado deshabilitada.
 
 Evidencia completa: [evidencias/09-verificacion-final.txt](evidencias/09-verificacion-final.txt)
+
+---
+
+## Análisis de errores
+
+### Errores que me han salido durante la práctica
+
+| Paso | Error | Causa | Solución |
+|---|---|---|---|
+| 1 | `kex_exchange_identification: read: Connection reset by peer` | El puerto 2222 lo tiene abierto Docker, pero en el 22 del contenedor no escuchaba nadie porque aún no había servidor SSH | Instalar y arrancar `openssh-server`. En una máquina real el mismo problema da `Connection refused` |
+| 1 | `sudo: command not found` | La imagen mínima de Debian no trae `sudo` | Instalarlo (`apt install sudo`). En la consola ya soy root |
+| 1 y 3 | `ps: command not found`, `ss: command not found` | Sistema mínimo: faltan `procps` e `iproute2` | `procps` llegó como dependencia de `openssh-server`. `iproute2` lo instalé a mano |
+| 2 | `invoke-rc.d: policy-rc.d denied execution of start.` | Las imágenes de Docker impiden que `apt` arranque servicios (`/usr/sbin/policy-rc.d` hace `exit 101`) | No es un fallo. Arrancar el servicio a mano en el paso 3 |
+| 3 | `System has not been booted with systemd as init system (PID 1). Can't operate.` | En el contenedor el PID 1 es `sleep infinity`, no `systemd` | Usar `service ssh ...` en vez de `systemctl ... ssh` |
+| 3 | No hay logs de `sshd` | No hay `journald` ni `rsyslog` funcionando | `SSHD_OPTS="-E /var/log/sshd.log"` en `/etc/default/ssh` |
+| 4 | `grep` no encuentra el servidor en `known_hosts` | `HashKnownHosts yes`: los nombres se guardan como hash | Buscar con `ssh-keygen -F '[127.0.0.1]:2222'` |
+| 8 | `-bash: sshd: command not found` | `/usr/sbin` no está en el `PATH` de un usuario normal en Debian | Usar `sudo sshd ...` (`sudo` sí tiene `/usr/sbin` en su `PATH`) |
+| 8 | `sshd: no hostkeys available -- exiting.` | Sin `sudo` no se pueden leer las claves privadas de la máquina (`600`, de root). El mensaje despista porque sí existen | Usar `sudo` |
+
+### Errores típicos provocados a propósito
+
+Para saber reconocerlos si me pasan en un servidor real, he provocado los errores más habituales, he mirado cómo se ven y los he arreglado. Lo hago desde la consola del contenedor, que es mi acceso de rescate.
+
+#### A. Permisos de `~/.ssh` en el servidor
+
+```text
+root@servidor-ssh:/# chmod 777 /home/usuario/.ssh
+diego@diego:~$ ssh servidor-ssh 'echo hola'
+usuario@127.0.0.1: Permission denied (publickey).
+root@servidor-ssh:/# tail -2 /var/log/sshd.log
+Authentication refused: bad ownership or modes for directory /home/usuario/.ssh
+Connection closed by authenticating user usuario 172.17.0.1 port 37534 [preauth]
+```
+
+- **Causa:** con `StrictModes yes` (por defecto), `sshd` no se fía de un `authorized_keys` dentro de una carpeta en la que otros pueden escribir. Cualquiera podría meter su clave. Desde el cliente solo se ve `Permission denied (publickey)` y no sabes por qué. **La pista está en el log del servidor.**
+- **Solución:** `chmod 700 ~/.ssh` y `chmod 600 ~/.ssh/authorized_keys`, y que sean del usuario (`chown -R usuario:usuario ~/.ssh`). Lo mismo pasa si el `home` del usuario tiene permiso de escritura para el grupo o para otros.
+
+#### B. Permisos de la clave privada en el cliente
+
+```text
+diego@diego:~$ chmod 644 ~/.ssh/id_ed25519_dpl
+diego@diego:~$ SSH_AUTH_SOCK= ssh servidor-ssh 'echo hola'
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Permissions 0644 for '/home/diego/.ssh/id_ed25519_dpl' are too open.
+It is required that your private key files are NOT accessible by others.
+This private key will be ignored.
+Load key "/home/diego/.ssh/id_ed25519_dpl": bad permissions
+usuario@127.0.0.1: Permission denied (publickey).
+```
+
+- **Causa:** el cliente se niega a usar una clave privada que pueden leer otros usuarios. Pasa mucho al copiar las claves de otro equipo o desde un USB.
+- **Solución:** `chmod 600 ~/.ssh/id_ed25519_dpl`.
+- Pongo `SSH_AUTH_SOCK=` vacío para que no use el agente. Como la clave está cargada en el agente desde el paso 7, si no lo hiciera seguiría entrando y no vería el error.
+
+#### C. Otro archivo vuelve a activar la contraseña
+
+Simulo lo que pasa en muchas VPS, que traen un `50-cloud-init.conf` con `PasswordAuthentication yes`:
+
+```text
+root@servidor-ssh:/# printf 'PasswordAuthentication yes\n' > /etc/ssh/sshd_config.d/50-cloud-init.conf
+root@servidor-ssh:/# sshd -T | grep -E '^passwordauthentication '
+passwordauthentication no
+```
+
+Con mi archivo llamado `00-...` no pasa nada: se lee primero y gana. Pero si lo hubiera llamado de forma que se lea después (lo renombro a `99-solo-claves.conf`):
+
+```text
+root@servidor-ssh:/# sshd -T | grep -E '^passwordauthentication '
+passwordauthentication yes
+root@servidor-ssh:/# service ssh reload
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1
+usuario@127.0.0.1's password:
+Last login: Mon Oct 26 19:48:50 2026 from 172.17.0.1
+usuario@servidor-ssh:~$ exit
+root@servidor-ssh:/# grep 'Accepted password' /var/log/sshd.log | tail -1
+Accepted password for usuario from 172.17.0.1 port 37556 ssh2
+```
+
+- **Causa:** en la configuración de `sshd` gana **el primer valor** que se lee. `50-cloud-init.conf` va antes que `99-solo-claves.conf`, y además todo `sshd_config.d` se lee antes que el resto de `sshd_config`. Así que poner `PasswordAuthentication no` al final de `sshd_config` tampoco serviría.
+- **Cómo se detecta:** con `sudo sshd -T | grep passwordauthentication`, que da el valor que gana de verdad, y probando a entrar con `-o PubkeyAuthentication=no`.
+- **Solución:** que mi archivo se lea primero (`00-...`) o cambiar a `no` el archivo que lo activa. Lo dejo como estaba y compruebo que vuelve a dar `Permission denied (publickey)`.
+
+#### D. Una errata en la configuración
+
+```text
+root@servidor-ssh:/# printf 'PasswordAuthentcation no\n' > /etc/ssh/sshd_config.d/10-errata.conf
+root@servidor-ssh:/# sshd -t
+/etc/ssh/sshd_config.d/10-errata.conf: line 1: Bad configuration option: PasswordAuthentcation
+/etc/ssh/sshd_config.d/10-errata.conf: terminating, 1 bad configuration options
+root@servidor-ssh:/# service ssh reload; echo "código de salida: $?"
+código de salida: 1
+root@servidor-ssh:/# service ssh status
+sshd is running.
+```
+
+- **Causa:** `PasswordAuthentcation` (falta una "i") no es una opción válida y `sshd` se niega a arrancar con ella.
+- `sshd -t` dice el archivo, la línea y la opción mal escrita.
+- El `reload` de Debian comprueba la configuración antes de aplicarla. Como falla, devuelve `1` y **no recarga**: `sshd` sigue funcionando con la configuración anterior. Ojo, porque no muestra ningún mensaje y parece que ha ido bien. Con un `restart` el servidor se pararía y no volvería a arrancar, y si estuviera conectado por SSH me quedaría fuera.
+- **Solución:** corregir la línea, `sshd -t` hasta que no diga nada, y entonces `reload`.
+
+#### E. La máquina cambia de claves
+
+Pasa si se reinstala el servidor o, aquí, si se borra y se vuelve a crear el contenedor. Lo simulo regenerando las claves de la máquina:
+
+```text
+root@servidor-ssh:/# rm /etc/ssh/ssh_host_* && ssh-keygen -A && service ssh restart
+ssh-keygen: generating new host keys: RSA ECDSA ED25519
+diego@diego:~$ ssh servidor-ssh 'echo hola'
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+...
+The fingerprint for the ED25519 key sent by the remote host is
+SHA256:oRuaZ8N6R3VTA+TVhC8zVSLSSavepE0BNa33hguVG5g.
+...
+Host key verification failed.
+```
+
+- **Causa:** la clave que presenta la máquina no coincide con la que guardé en `known_hosts` en el paso 4. El cliente no se conecta porque podría ser un ataque de intermediario (*man-in-the-middle*).
+- **Antes de arreglarlo hay que estar seguro de que el cambio es legítimo.** Lo compruebo en la consola: la huella nueva (`SHA256:oRua...VG5g`) es la que me enseña el cliente.
+- **Solución:** borrar la entrada antigua y aceptar la nueva:
+
+```text
+diego@diego:~$ ssh-keygen -R '[127.0.0.1]:2222'
+# Host [127.0.0.1]:2222 found: line 4
+# Host [127.0.0.1]:2222 found: line 5
+# Host [127.0.0.1]:2222 found: line 6
+/home/diego/.ssh/known_hosts updated.
+Original contents retained as /home/diego/.ssh/known_hosts.old
+diego@diego:~$ ssh servidor-ssh 'echo hola'
+The authenticity of host '[127.0.0.1]:2222 ([127.0.0.1]:2222)' can't be established.
+ED25519 key fingerprint is SHA256:oRuaZ8N6R3VTA+TVhC8zVSLSSavepE0BNa33hguVG5g.
+...
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+hola
+```
+
+### Cómo no quedarse fuera del servidor
+
+El peor error es quitar la contraseña sin que la clave funcione, o romper `sshd`, y quedarse sin acceso. Lo que he hecho para evitarlo:
+1. No quitar la contraseña hasta haber comprobado que entro con clave (paso 7 antes del paso 8).
+2. Tener siempre un acceso abierto aparte: la consola del contenedor y una sesión SSH. En un VPS sería la consola web del proveedor.
+3. `sshd -t` antes de cada `reload`.
+4. Usar `reload` y no `restart`.
+5. Probar desde **otra** terminal antes de cerrar la que tengo abierta.
+
+Evidencia completa: [evidencias/10-errores-provocados.txt](evidencias/10-errores-provocados.txt)

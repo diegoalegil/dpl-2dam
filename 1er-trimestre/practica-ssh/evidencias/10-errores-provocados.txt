@@ -1,0 +1,136 @@
+########## Error A: permisos de ~/.ssh en el servidor (StrictModes)
+
+root@servidor-ssh:/# chmod 777 /home/usuario/.ssh && ls -ld /home/usuario/.ssh
+drwxrwxrwx 2 usuario usuario 4096 Oct 26 19:36 /home/usuario/.ssh
+
+diego@diego:~$ ssh servidor-ssh 'echo hola'
+usuario@127.0.0.1: Permission denied (publickey).
+
+root@servidor-ssh:/# tail -2 /var/log/sshd.log
+Authentication refused: bad ownership or modes for directory /home/usuario/.ssh
+Connection closed by authenticating user usuario 172.17.0.1 port 37534 [preauth]
+
+root@servidor-ssh:/# chmod 700 /home/usuario/.ssh && ls -ld /home/usuario/.ssh
+drwx------ 2 usuario usuario 4096 Oct 26 19:36 /home/usuario/.ssh
+
+diego@diego:~$ ssh servidor-ssh 'echo hola'
+hola
+
+########## Error B: permisos de la clave privada en el cliente
+
+diego@diego:~$ chmod 644 ~/.ssh/id_ed25519_dpl
+
+diego@diego:~$ SSH_AUTH_SOCK= ssh servidor-ssh 'echo hola'
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Permissions 0644 for '/home/diego/.ssh/id_ed25519_dpl' are too open.
+It is required that your private key files are NOT accessible by others.
+This private key will be ignored.
+Load key "/home/diego/.ssh/id_ed25519_dpl": bad permissions
+usuario@127.0.0.1: Permission denied (publickey).
+
+diego@diego:~$ chmod 600 ~/.ssh/id_ed25519_dpl && ls -l ~/.ssh/id_ed25519_dpl
+-rw------- 1 diego diego 464 oct 26 19:29 /home/diego/.ssh/id_ed25519_dpl
+
+########## Error C: otro archivo de sshd_config.d vuelve a activar la contraseña
+
+root@servidor-ssh:/# printf 'PasswordAuthentication yes\n' > /etc/ssh/sshd_config.d/50-cloud-init.conf && ls /etc/ssh/sshd_config.d/
+00-solo-claves.conf
+50-cloud-init.conf
+
+root@servidor-ssh:/# sshd -T | grep -E '^passwordauthentication '
+passwordauthentication no
+
+# Ahora simulo que mi archivo se llamase 99-solo-claves.conf (se leería después)
+
+root@servidor-ssh:/# mv /etc/ssh/sshd_config.d/00-solo-claves.conf /etc/ssh/sshd_config.d/99-solo-claves.conf && ls /etc/ssh/sshd_config.d/
+50-cloud-init.conf
+99-solo-claves.conf
+
+root@servidor-ssh:/# sshd -T | grep -E '^passwordauthentication '
+passwordauthentication yes
+
+root@servidor-ssh:/# service ssh reload
+Reloading OpenBSD Secure Shell server's configuration: sshd.
+
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1
+usuario@127.0.0.1's password: 
+Last login: Mon Oct 26 19:48:50 2026 from 172.17.0.1
+usuario@servidor-ssh:~$ exit
+logout
+Connection to 127.0.0.1 closed.
+
+root@servidor-ssh:/# grep 'Accepted password' /var/log/sshd.log | tail -1
+Accepted password for usuario from 172.17.0.1 port 37556 ssh2
+
+# Lo arreglo: quito el 50-cloud-init.conf de prueba y vuelvo a llamar a mi archivo 00-
+
+root@servidor-ssh:/# rm /etc/ssh/sshd_config.d/50-cloud-init.conf && mv /etc/ssh/sshd_config.d/99-solo-claves.conf /etc/ssh/sshd_config.d/00-solo-claves.conf && ls /etc/ssh/sshd_config.d/
+00-solo-claves.conf
+
+root@servidor-ssh:/# sshd -t && sshd -T | grep -E '^passwordauthentication ' && service ssh reload
+passwordauthentication no
+Reloading OpenBSD Secure Shell server's configuration: sshd.
+
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+
+########## Error D: errata en la configuración
+
+root@servidor-ssh:/# printf 'PasswordAuthentcation no\n' > /etc/ssh/sshd_config.d/10-errata.conf
+
+root@servidor-ssh:/# sshd -t
+/etc/ssh/sshd_config.d/10-errata.conf: line 1: Bad configuration option: PasswordAuthentcation
+/etc/ssh/sshd_config.d/10-errata.conf: terminating, 1 bad configuration options
+
+root@servidor-ssh:/# service ssh reload; echo "código de salida: $?"
+código de salida: 1
+
+root@servidor-ssh:/# service ssh status
+sshd is running.
+
+root@servidor-ssh:/# rm /etc/ssh/sshd_config.d/10-errata.conf && sshd -t && echo 'sintaxis OK'
+sintaxis OK
+
+########## Error E: la máquina cambia de claves (REMOTE HOST IDENTIFICATION HAS CHANGED)
+
+root@servidor-ssh:/# rm /etc/ssh/ssh_host_* && ssh-keygen -A && service ssh restart
+ssh-keygen: generating new host keys: RSA ECDSA ED25519 
+Restarting OpenBSD Secure Shell server: sshd.
+
+root@servidor-ssh:/# ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+256 SHA256:oRuaZ8N6R3VTA+TVhC8zVSLSSavepE0BNa33hguVG5g root@servidor-ssh (ED25519)
+
+diego@diego:~$ ssh servidor-ssh 'echo hola'
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+It is also possible that a host key has just been changed.
+The fingerprint for the ED25519 key sent by the remote host is
+SHA256:oRuaZ8N6R3VTA+TVhC8zVSLSSavepE0BNa33hguVG5g.
+Please contact your system administrator.
+Add correct host key in /home/diego/.ssh/known_hosts to get rid of this message.
+Offending ECDSA key in /home/diego/.ssh/known_hosts:6
+  remove with:
+  ssh-keygen -f '/home/diego/.ssh/known_hosts' -R '[127.0.0.1]:2222'
+Host key for [127.0.0.1]:2222 has changed and you have requested strict checking.
+Host key verification failed.
+
+diego@diego:~$ ssh-keygen -R '[127.0.0.1]:2222'
+# Host [127.0.0.1]:2222 found: line 4
+# Host [127.0.0.1]:2222 found: line 5
+# Host [127.0.0.1]:2222 found: line 6
+/home/diego/.ssh/known_hosts updated.
+Original contents retained as /home/diego/.ssh/known_hosts.old
+
+diego@diego:~$ ssh servidor-ssh 'echo hola'
+The authenticity of host '[127.0.0.1]:2222 ([127.0.0.1]:2222)' can't be established.
+ED25519 key fingerprint is SHA256:oRuaZ8N6R3VTA+TVhC8zVSLSSavepE0BNa33hguVG5g.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[127.0.0.1]:2222' (ED25519) to the list of known hosts.
+hola
+
