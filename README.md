@@ -23,6 +23,7 @@ dpl-2dam/
 ## 1er trimestre
 
 - [Tareas pendientes](1er-trimestre/pendientes.md): issues abiertas e ideas de issues.
+- [Novedades](1er-trimestre/novedades.md): lo que ha ido cambiando en GitHub (PR, issues, repos nuevos).
 
 ### 1er examen
 

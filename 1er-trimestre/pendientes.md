@@ -1,51 +1,46 @@
 # Tareas pendientes
 
-Situación a 06/10/2026.
+Situación a 26/10/2026. Lo que ha pasado desde el 06/10 está en [novedades.md](novedades.md).
 
-## Mi tarea ahora: issue #10 "Aprender a crear una Issue"
+## Lo mío
 
-Criterio de aceptación: cada alumno tiene que haber creado al menos una issue o haber participado en alguna.
+- **#33 "Arreglar los warnings de anchor"**: me la asignaron junto a @Jorghdez18 y @Atthemyg. Ya está cerrada: la resolvió @Atthemyg con el PR #38 (merge el 21/10).
+- **Todavía no he creado ninguna issue.** La #10 ("Aprender a crear una Issue") se cerró el 26/10, pero el criterio era que cada alumno creara al menos una. Me conviene crear una cuanto antes (ideas abajo).
+- Mi equipo en la organización es **limos** (17 personas). El otro grupo que trabaja en gitanddocs es **bolero**.
 
-Pasos:
-1. Crear una issue con la plantilla que toque.
-2. Ponerle label y añadirla al Project DPL.
-3. Si se puede, resolverla yo con una rama y un PR que lleve `Closes #N`, para practicar el ciclo entero.
+## Issues abiertas en gitanddocs
 
-## Issues abiertas del repo
+| # | Tarea | Asignada a | Situación |
+|---|---|---|---|
+| 4 | Desplegar site en un contenedor con NGINX | @albertocarher | El PR #7 se cerró sin merge |
+| 16 | Configuración y uso de Gitea (madre) | @somilvd | Pendiente de sus hijas |
+| 17 | Clonar y enviar cambios con los puertos cambiados | @IvnMD | Sin PR |
+| 19 | Documentación de la instalación de Gitea | @jmesmarrero | Hecha con el PR #29, pero la issue sigue abierta (el PR no puso bien `Closes #19`) |
+| 27 | Configuración e instalación de NGINX | @jmesmarrero | El PR #39 se hizo al revés y la guía no está en `main` (ver novedades) |
+| 30 | Refactorizar la documentación para tener un apartado de Docker y Compose | @jreyper | Sin PR |
+| 32 | Conectar a una máquina remota por SSH | @modiael, @Jose-Glez-Hdez | El profe trabaja en la rama `issue-32` y hay un PR duplicado (#34) |
+| 35 | Añadir hosts (`/etc/hosts` para ver la documentación desde otra máquina) | @juanpsuaa | Sin PR |
 
-| # | Tarea | Situación |
+## PR abiertos
+
+| # | Qué | Situación |
 |---|---|---|
-| 4 | Desplegar site en un contenedor con NGINX | En progreso. El PR #7 está abierto con cambios pedidos |
-| 10 | Aprender a crear una Issue | Asignada, la tenemos que hacer todos |
-| 16 | Instalación, configuración y uso de Gitea | Sin asignar. Es la madre de #17 y #19 |
-| 17 | Clonar y enviar cambios con los puertos cambiados | Sin asignar |
-| 19 | Documentación de la instalación de Gitea | Sin asignar. Debe cubrir la clase doble del 02/10 |
+| 34 | Proteger las conexiones SSH con clave (`docs/seguridad-servidor/`) | Duplica lo que hace el profe en `issue-32`. Hay que fusionar ambos |
+| 40 | Guía para crear una issue (`docs/creando-isue.md`) | Aprobado por @IvnMD, falta el merge |
 
-Lo que pide la #19:
-- Un `.md` en `docs/` con la instalación de Gitea paso a paso.
-- Sin faltas de ortografía, concisa y completa.
-- Añadida al `nav` de `zensical.toml`.
-- Explicar a fondo Docker y Docker Compose.
-- Referencia: https://docs.gitea.com/installation/install-with-docker/
+## Fallos que siguen sin arreglar (ideas para mi issue)
 
-Lo que pide la #17:
-- Diferencia entre crear un repo vacío y uno inicializado, y qué implica cada uno.
-- Instalación y configuración teniendo en cuenta que hemos cambiado los puertos por defecto (el `git clone` cambia un poco).
+Comprobados de nuevo el 26/10:
 
-## Fallos encontrados en el repo (ideas para issues)
+1. **`.github/ISSUE_TEMPLATE/config.yml` sigue roto.** Empieza por `cat > .github/ISSUE_TEMPLATE/config.yml << 'EOF'` y acaba con `EOF`, así que no es YAML válido y GitHub no lo aplica. Plantilla: Reporte de Bug.
+2. **Faltan las labels `task` y `security`** que usan las plantillas "Tarea General" y "Vulnerabilidad de Seguridad". Plantilla: Reporte de Bug.
+3. **`ejemplo.md` en la raíz del repo** con texto basura (`iiqerigfberiugz...`). Lo metió el profe con el PR #26 ("ya termine"), que parece una demo de cómo cerrar una issue con un PR (cerró la #25). Se puede proponer borrarlo. Plantilla: Tarea General. Es la más fácil de resolver con un PR.
+4. **Los textos del menú lateral siguen en inglés** ("Get started", "Markdown in 5min", "Using Git & Github"...). Las issues #24 y #25 pedían unificarlos, pero se cerraron con el PR de demo, que no los cambió.
+5. **La guía de NGINX no está en `main`.** El PR #39 tenía la base y la rama cambiadas (`jorgeMRama ← main`), así que se mezcló `main` dentro de la rama de Jorge y no al revés. `docs/nginx/install-nginx.md` solo existe en `jorgeMRama`. Antes de abrir nada, mejor comentarlo con @jmesmarrero.
+6. **Sigue perdida la explicación de `source ~/.bashrc`** para usar uv sin reiniciar la terminal (ahora la guía está en `docs/index.md`). Plantilla: Reporte de Bug.
+7. **Faltas en `docs/trabajando-con-git.md`**: "alamcenar", "trabajaar", "persoans", "lcoal"... Plantilla: Tarea General.
+8. **`zensical.toml` sin personalizar**: `site_name = "Documentation"`, `site_url` de ejemplo y `language = "en"`. Plantilla: Tarea General.
 
-Los he comprobado y son reales:
+Ya arreglado: `docs/tema-visual.md` ya tiene icono.
 
-1. **`.github/ISSUE_TEMPLATE/config.yml` está roto.** Dentro del archivo se coló el comando de terminal con el que se creó: empieza por `cat > .github/ISSUE_TEMPLATE/config.yml << 'EOF'` y acaba con `EOF`. No es YAML válido, así que GitHub no lo aplica (ni `blank_issues_enabled: false` ni el enlace de "Pregunta general"). Arreglo: dejar solo el contenido del medio. Plantilla: Reporte de Bug.
-
-2. **Labels que no existen.** Las plantillas "Tarea General" y "Vulnerabilidad de Seguridad" ponen las labels `task` y `security`, pero en el repo no están creadas, así que no se aplican. Arreglo: crear esas labels o cambiar las plantillas. Plantilla: Reporte de Bug.
-
-3. **Se perdió la explicación de uv sin reiniciar la terminal.** El PR #6 (issue #3) añadió al README cómo usar `source ~/.bashrc`, pero en el merge `9c5819c` ("Merge branch 'main' into rama-atteneri") se perdió al resolver el conflicto. Ahora el README dice que no hace falta reiniciar la terminal, pero no explica cómo. Arreglo: recuperar ese bloque. Plantilla: Reporte de Bug o Tarea General.
-
-4. **Faltas de ortografía en `docs/trabajando-con-git.md`**: "alamcenar", "respositorio(s)", "trabajaar", "persoans", "lcoal". También hay restos sueltos ("En Github", "En Bash"), en el paso 5 pone `tu-rama` cuando el comando usa `nombre-rama`, y en el paso 7 sale "jorgeM". Plantilla: Tarea General (documentación).
-
-5. **Configuración de la web sin personalizar.** En `zensical.toml` siguen `site_name = "Documentation"`, `site_url = "https://www.example.com/"` y `language = "en"`, cuando la documentación está en español y la web real es https://monium.github.io/gitanddocs/. `index.md` y `markdown.md` son las páginas de ejemplo de Zensical en inglés. Plantilla: Solicitud de Funcionalidad o Tarea General.
-
-6. **`docs/tema-visual.md` no tiene icono** en la cabecera, cuando las demás páginas sí (`icon: lucide/...`). Es una tontería, pero sirve como primera issue fácil.
-
-Antes de crear una, mirar que no la haya abierto ya otro compañero.
+Antes de crear una, mirar que nadie la haya abierto ya.
