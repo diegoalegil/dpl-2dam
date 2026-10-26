@@ -678,3 +678,85 @@ Reloading OpenBSD Secure Shell server's configuration: sshd.
 Uso `reload` y no `restart`: `reload` hace que `sshd` relea la configuración sin cortar las conexiones abiertas, y la sesión en la que estoy sigue viva. En una máquina real: `sudo systemctl reload ssh`.
 
 Evidencia completa: [evidencias/08-deshabilitar-contrasena.txt](evidencias/08-deshabilitar-contrasena.txt)
+
+---
+
+## Paso 9: Verificación final
+
+Desde otra terminal de mi equipo (sin cerrar la consola ni la sesión anterior) hago todas las pruebas.
+
+**1. Con clave entra:**
+
+```text
+diego@diego:~$ ssh servidor-ssh 'echo "he entrado con clave como $(whoami) en $(hostname)"'
+he entrado con clave como usuario en servidor-ssh
+```
+
+**2. Forzando la contraseña no entra.** Con `-o PubkeyAuthentication=no` le digo a mi cliente que no use claves, así que solo le quedaría la contraseña:
+
+```text
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+```
+
+Ni siquiera me pregunta la contraseña. El `(publickey)` del final es la lista de métodos que acepta el servidor, y ya solo queda uno. Lo confirmo con `-v`:
+
+```text
+diego@diego:~$ ssh -v -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1 2>&1 | grep -E 'Authentications that can continue|No more authentication methods|Permission denied'
+debug1: Authentications that can continue: publickey
+debug1: No more authentication methods to try.
+usuario@127.0.0.1: Permission denied (publickey).
+```
+
+En el paso 7 ponía `publickey,password`. Ahora solo `publickey`.
+
+**3. Pidiendo expresamente contraseña o teclado interactivo tampoco entra.** Así compruebo que la vía de `KbdInteractiveAuthentication` también está cerrada:
+
+```text
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+```
+
+**4. Root no puede entrar:**
+
+```text
+diego@diego:~$ ssh -p 2222 root@127.0.0.1
+root@127.0.0.1: Permission denied (publickey).
+```
+
+**5. Una clave que no está en `authorized_keys` no sirve.** Pruebo con mi clave de GitHub:
+
+```text
+diego@diego:~$ ssh -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 -p 2222 usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+```
+
+**6. Lo que ve el servidor:**
+
+```text
+Accepted publickey for usuario from 172.17.0.1 port 47982 ssh2: ED25519 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14
+...
+Connection closed by authenticating user usuario 172.17.0.1 port 47988 [preauth]
+Connection closed by authenticating user usuario 172.17.0.1 port 47998 [preauth]
+Connection closed by authenticating user usuario 172.17.0.1 port 48004 [preauth]
+Connection closed by authenticating user root 172.17.0.1 port 34644 [preauth]
+Connection closed by authenticating user usuario 172.17.0.1 port 34660 [preauth]
+```
+
+La única que pone `Accepted` es la de la clave buena. El resto se cortan antes de autenticarse (`[preauth]`). Ya no aparece ningún `Accepted password`, que sí salía en el paso 4.
+
+### Resumen
+
+| Comprobación | Resultado esperado | Resultado |
+|---|---|---|
+| Entrar con la clave de la práctica | Entra | Entra |
+| Entrar sin clave (solo contraseña) | `Permission denied (publickey)` | Correcto |
+| Forzar `password` o `keyboard-interactive` | `Permission denied (publickey)` | Correcto |
+| Entrar como root | Denegado | Correcto |
+| Entrar con una clave que no está autorizada | Denegado | Correcto |
+| Métodos que ofrece el servidor (`ssh -v`) | Solo `publickey` | Correcto |
+| `sshd -T` | `passwordauthentication no` | Correcto (paso 8) |
+
+El acceso remoto funciona solo con clave y la autenticación por contraseña ha quedado deshabilitada.
+
+Evidencia completa: [evidencias/09-verificacion-final.txt](evidencias/09-verificacion-final.txt)

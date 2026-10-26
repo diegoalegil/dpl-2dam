@@ -1,0 +1,34 @@
+diego@diego:~$ ssh servidor-ssh 'echo "he entrado con clave como $(whoami) en $(hostname)"'
+he entrado con clave como usuario en servidor-ssh
+
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+
+diego@diego:~$ ssh -v -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1 2>&1 | grep -E 'Authentications that can continue|No more authentication methods|Permission denied'
+debug1: Authentications that can continue: publickey
+debug1: No more authentication methods to try.
+usuario@127.0.0.1: Permission denied (publickey).
+
+diego@diego:~$ ssh -p 2222 root@127.0.0.1
+root@127.0.0.1: Permission denied (publickey).
+
+diego@diego:~$ ssh -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 -p 2222 usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+
+root@servidor-ssh:/# tail -12 /var/log/sshd.log
+Server listening on :: port 22.
+syslogin_perform_logout: logout() returned an error
+Received disconnect from 172.17.0.1 port 47082:11: disconnected by user
+Disconnected from user usuario 172.17.0.1 port 47082
+Accepted publickey for usuario from 172.17.0.1 port 47982 ssh2: ED25519 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14
+Received disconnect from 172.17.0.1 port 47982:11: disconnected by user
+Disconnected from user usuario 172.17.0.1 port 47982
+Connection closed by authenticating user usuario 172.17.0.1 port 47988 [preauth]
+Connection closed by authenticating user usuario 172.17.0.1 port 47998 [preauth]
+Connection closed by authenticating user usuario 172.17.0.1 port 48004 [preauth]
+Connection closed by authenticating user root 172.17.0.1 port 34644 [preauth]
+Connection closed by authenticating user usuario 172.17.0.1 port 34660 [preauth]
+
