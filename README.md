@@ -24,6 +24,7 @@ dpl-2dam/
 
 - [Tareas pendientes](1er-trimestre/pendientes.md): issues abiertas e ideas de issues.
 - [Novedades](1er-trimestre/novedades.md): lo que ha ido cambiando en GitHub (PR, issues, repos nuevos).
+- [Práctica guiada: acceso remoto por SSH](1er-trimestre/practica-ssh/README.md): configurar SSH desde cero, entrar con clave y quitar la contraseña.
 
 ### 1er examen
 

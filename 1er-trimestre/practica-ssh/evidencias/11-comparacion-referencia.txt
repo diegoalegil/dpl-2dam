@@ -1,0 +1,41 @@
+# PR #34 edita la configuración con 'sudo vim'. En la Debian mínima no hay ningún editor:
+
+root@servidor-ssh:/# vim /etc/ssh/sshd_config
+bash: line 1: vim: command not found
+
+root@servidor-ssh:/# which vim vi nano
+
+# La guía de la rama issue-32 enseña known_hosts con cat. En Linux Mint los nombres salen como hash:
+
+diego@diego:~$ ssh -G servidor-ssh | grep -i hashknownhosts
+hashknownhosts yes
+
+diego@diego:~$ head -1 ~/.ssh/known_hosts | cut -c1-60
+|1|jCpLiUHHcSImvvl374RQ5GOOo9o=|veaduB3b//iRNs0iADIkfiYIQH4=
+
+# Estado final de la máquina
+
+root@servidor-ssh:/# cat /etc/ssh/sshd_config.d/00-solo-claves.conf
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+
+root@servidor-ssh:/# sshd -T | grep -E '^(pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication|permitrootlogin) '
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+
+root@servidor-ssh:/# ls -la /home/usuario/.ssh
+total 12
+drwx------ 2 usuario usuario 4096 Oct 26 19:36 .
+drwx------ 3 usuario usuario 4096 Oct 26 19:48 ..
+-rw------- 1 usuario usuario  100 Oct 26 19:36 authorized_keys
+
+diego@diego:~$ ssh servidor-ssh 'echo ok'
+ok
+
+diego@diego:~$ ssh -p 2222 -o PubkeyAuthentication=no usuario@127.0.0.1
+usuario@127.0.0.1: Permission denied (publickey).
+

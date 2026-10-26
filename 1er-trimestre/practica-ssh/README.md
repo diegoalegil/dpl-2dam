@@ -910,3 +910,60 @@ El peor error es quitar la contraseña sin que la clave funcione, o romper `sshd
 5. Probar desde **otra** terminal antes de cerrar la que tengo abierta.
 
 Evidencia completa: [evidencias/10-errores-provocados.txt](evidencias/10-errores-provocados.txt)
+
+---
+
+## Comparación con la documentación de referencia
+
+Siguiendo las dos guías he visto cosas que en mi caso no funcionaron tal cual o que se pueden mejorar.
+
+### PR #34 (`docs/seguridad-servidor/conexion-ssh.md`)
+
+| Qué dice | Qué me pasó o qué falta | Propuesta |
+|---|---|---|
+| "Necesitas un servidor con acceso SSH funcionando" | No explica la instalación del servicio, que es la primera parte de la práctica | Añadir instalación y arranque, o enlazar a la guía del profe |
+| `ssh-keygen -t ed25519 -C "mi-clave"` y "pulsa Enter para aceptar la ruta por defecto" | Si ya tienes una `id_ed25519` (la de GitHub, por ejemplo), te pregunta si quieres sobrescribirla. Si dices que sí, pierdes esa clave | Avisar o usar `-f` con otro nombre (paso 5) |
+| `ssh-copy-id usuario@IP` sin `-i` | Copia las claves del agente o la `.pub` más reciente, que puede no ser la que quieres | `ssh-copy-id -i ~/.ssh/clave.pub ...` (paso 6) |
+| `sudo vim /etc/ssh/sshd_config` | En un Debian mínimo no hay ningún editor: `bash: line 1: vim: command not found` | Instalar un editor antes (`apt install nano`) o usar `sudo tee` como en el paso 8 |
+| "Busca (o añade al final) estas líneas" | Añadirlas al final de `sshd_config` no sirve si antes ya se define la opción, porque **gana el primer valor**, y `sshd_config.d/` se lee antes (error C). La guía sí avisa de `sshd_config.d`, pero no explica por qué "tiene prioridad" | Explicar la regla del primer valor, o recomendar directamente un archivo `00-...conf` en `sshd_config.d/` |
+| `sudo systemctl restart ssh` | `restart` corta el servicio. Si la configuración tuviera un error, no vuelve a arrancar. Además, en un contenedor `systemctl` no funciona (paso 3) | `reload`, después de `sshd -t` (error D) |
+| Verificación con `ssh -o PubkeyAuthentication=no` | Coincide con mi resultado: `Permission denied (publickey)` | Añadir `sudo sshd -T \| grep passwordauthentication` para ver el valor efectivo |
+| Problemas frecuentes | No dice dónde mirar el motivo real de un `Permission denied`. En el error A el cliente no da ninguna pista y la causa solo sale en el log del servidor | Añadir `sudo journalctl -u ssh -e` (o el log del servidor) como primer paso para diagnosticar |
+| En la descripción del PR la guía se llama `ssh-solo-clave.md` | El archivo que sube se llama `conexion-ssh.md` | Corregir la descripción |
+
+### Guía del profe (rama `issue-32`, `docs/ssh/connect-to-machine.md`)
+
+Es la que más se parece a lo que he hecho y la he seguido casi entera. Lo que añadiría:
+
+| Qué dice | Qué me pasó | Propuesta |
+|---|---|---|
+| Si el servidor no está arrancado sale `Connection refused` | Con el puerto publicado por Docker sale `kex_exchange_identification: read: Connection reset by peer` (paso 1) | Añadir este mensaje en "Solución de problemas" |
+| `sshd: no hostkeys available -- exiting` significa que faltan las claves de la máquina | A mí me salió con las claves en su sitio, por ejecutar `/usr/sbin/sshd -t` sin `sudo` (paso 8) | Añadir "o lo has ejecutado sin `sudo`" |
+| Para ver los logs, parar el servicio y lanzar `sshd -D -e` | Funciona, pero mientras tanto el servicio no está como servicio | Alternativa: `SSHD_OPTS="-E /var/log/sshd.log"` en `/etc/default/ssh` (paso 3), que deja un log permanente |
+| `cat ~/.ssh/known_hosts` (en `create-ssh-key.md`) | En Linux Mint y Ubuntu `HashKnownHosts` está a `yes` y lo que se ve es `\|1\|jCpLiUHH...`, no el nombre del servidor (paso 4) | Explicar el hash y usar `ssh-keygen -F host` |
+| `ChallengeResponseAuthentication no` | Es el nombre antiguo de `KbdInteractiveAuthentication` | Se puede quitar |
+| La práctica usa la clave por defecto `~/.ssh/id_ed25519` | Si es la misma que la de GitHub, se mezclan las claves | Generar una clave para la práctica y usarla con `~/.ssh/config` e `IdentitiesOnly yes` (paso 7) |
+
+Evidencia: [evidencias/11-comparacion-referencia.txt](evidencias/11-comparacion-referencia.txt)
+
+---
+
+## Conclusiones
+
+- Con muy pocos cambios se pasa de un servidor que acepta contraseñas a uno que solo acepta claves: un archivo de 4 líneas en `sshd_config.d/` y un `reload`. Lo importante es el **orden**: primero comprobar que la clave funciona y después quitar la contraseña, siempre con otro acceso abierto.
+- `sshd -t` y `sshd -T` son las dos herramientas clave. La primera evita romper el servicio. La segunda dice la configuración que vale de verdad, que no siempre es la que pone el archivo que has editado (error C).
+- Cuando el cliente solo dice `Permission denied (publickey)`, la respuesta está en el **log del servidor** (error A).
+- La passphrase de la clave y la contraseña del usuario son cosas distintas. Quitar la contraseña en SSH no la quita del sistema: sigue haciendo falta para `sudo`.
+- Hacerlo en un contenedor me ha obligado a entender cosas que en un servidor normal pasan solas: que el servicio arranque, de dónde salen los logs y por qué los mensajes de error cambian según haya Docker por medio o no.
+
+## Cómo volver a usar la máquina
+
+El contenedor sigue creado. Si se apaga (por ejemplo, al reiniciar el equipo):
+
+```bash
+docker start servidor-ssh
+docker exec servidor-ssh service ssh start
+ssh servidor-ssh
+```
+
+Si se borra con `docker rm -f servidor-ssh` y se crea otra vez, hay que repetir los pasos 2 a 8 y borrar la huella antigua con `ssh-keygen -R '[127.0.0.1]:2222'` (error E).
