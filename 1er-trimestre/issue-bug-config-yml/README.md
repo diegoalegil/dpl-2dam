@@ -96,3 +96,28 @@ Lo que se ve:
 - **Línea 7:** `EOF`, el final del heredoc. Tampoco es YAML.
 - Encima del código, GitHub enseña el último commit que tocó el archivo: `1fa505f`, de IvnMD, con el mensaje del PR de las plantillas. Con **History** se ve el historial completo del archivo y con **Blame** quién escribió cada línea.
 - GitHub no muestra ningún aviso de que el archivo esté mal. Lo enseña con colores como si fuera YAML normal y simplemente no lo aplica. Por eso el fallo ha pasado desapercibido casi un mes.
+
+## Paso 3: Compruebo que nadie lo ha reportado
+
+Antes de abrir una issue hay que mirar que no exista ya. Si no, dos personas acaban haciendo lo mismo, como pasó con el PR #34, que duplicaba trabajo que el profe ya tenía en su rama.
+
+Uso el buscador de la pestaña Issues y de la pestaña Pull requests:
+
+- `is:issue` busca solo issues y `is:pr` solo PR.
+- Quito `state:open`, que es lo que pone el buscador por defecto. Así salen también las cerradas, porque alguien podría haberlo reportado y haberla cerrado ya.
+
+**Búsqueda 1:** [issues que mencionan config.yml](https://github.com/monium/gitanddocs/issues?q=is%3Aissue%20config.yml). No sale ninguna.
+
+![Búsqueda de issues con config.yml](evidencias/03a-busqueda-issues-config-yml.png)
+
+**Búsqueda 2:** [issues que mencionan "plantilla"](https://github.com/monium/gitanddocs/issues?q=is%3Aissue%20plantilla), por si alguien lo reportó sin poner el nombre del archivo. Sale solo la #20, cerrada (icono morado), pero no tiene que ver: ahí "plantilla" significa cómo están organizadas las carpetas del proyecto con Zensical, no las plantillas de issue. Una misma palabra puede significar dos cosas, así que hay que abrir lo que salga antes de decidir.
+
+![Búsqueda de issues con plantilla](evidencias/03b-busqueda-issues-plantilla.png)
+
+**Búsqueda 3:** [PR que mencionan config.yml](https://github.com/monium/gitanddocs/pulls?q=is%3Apr%20config.yml), por si alguien intentó arreglarlo sin abrir issue. Sale solo el #11, fusionado (icono morado de merge). Es el PR que añadió el archivo roto, no uno que lo arregle. Al lado pone "Review required": se fusionó sin que nadie lo aprobara, y por eso el fallo no lo vio nadie. Ahora `main` exige 3 aprobaciones.
+
+![Búsqueda de PR con config.yml](evidencias/03c-busqueda-pr-config-yml.png)
+
+Conclusión: **nadie ha reportado ni arreglado el fallo**. Puedo abrir la issue.
+
+Otra cosa que he visto: en las búsquedas de issues sale el cartel "Want to contribute to monium/gitanddocs? read the contributing guidelines". El repo no tiene ningún archivo con normas para contribuir. Lo dejo para la segunda tarea, la mejora.
