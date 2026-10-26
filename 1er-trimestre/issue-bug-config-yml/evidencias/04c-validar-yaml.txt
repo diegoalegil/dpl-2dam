@@ -1,0 +1,34 @@
+$ uv run python -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/ISSUE_TEMPLATE/config.yml
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import yaml,sys; yaml.safe_load(open(sys.argv[1]))
+                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/__init__.py", line 125, in safe_load
+    return load(stream, SafeLoader)
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/__init__.py", line 81, in load
+    return loader.get_single_data()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/constructor.py", line 49, in get_single_data
+    node = self.get_single_node()
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/composer.py", line 36, in get_single_node
+    document = self.compose_document()
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/composer.py", line 58, in compose_document
+    self.get_event()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/parser.py", line 118, in get_event
+    self.current_event = self.state()
+                         ~~~~~~~~~~^^
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/parser.py", line 193, in parse_document_end
+    token = self.peek_token()
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/scanner.py", line 129, in peek_token
+    self.fetch_more_tokens()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/scanner.py", line 223, in fetch_more_tokens
+    return self.fetch_value()
+           ~~~~~~~~~~~~~~~~^^
+  File "/Users/diego/Desktop/DAM 2do Año/DPL/gitanddocs/.venv/lib/python3.14/site-packages/yaml/scanner.py", line 577, in fetch_value
+    raise ScannerError(None, None,
+            "mapping values are not allowed here",
+            self.get_mark())
+yaml.scanner.ScannerError: mapping values are not allowed here
+  in ".github/ISSUE_TEMPLATE/config.yml", line 2, column 21

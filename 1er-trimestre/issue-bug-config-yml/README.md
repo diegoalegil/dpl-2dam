@@ -121,3 +121,53 @@ Uso el buscador de la pestaña Issues y de la pestaña Pull requests:
 Conclusión: **nadie ha reportado ni arreglado el fallo**. Puedo abrir la issue.
 
 Otra cosa que he visto: en las búsquedas de issues sale el cartel "Want to contribute to monium/gitanddocs? read the contributing guidelines". El repo no tiene ningún archivo con normas para contribuir. Lo dejo para la segunda tarea, la mejora.
+
+## Paso 4: Reproduzco el error en local
+
+La web no dice si un YAML está bien o mal, así que lo compruebo en la terminal con PyYAML, el lector de YAML para Python.
+
+**4a. Clono el repo de clase** dentro de mi carpeta de DPL y hago que mis apuntes ignoren esa carpeta. `.git/info/exclude` funciona como un `.gitignore`, pero solo en mi ordenador y sin que se suba a ningún sitio. Salida completa en [04a-clonar.txt](evidencias/04a-clonar.txt).
+
+```bash
+cd "$HOME/Desktop/DAM 2do Año/DPL"
+gh repo clone monium/gitanddocs
+echo "gitanddocs/" >> .git/info/exclude
+```
+
+La barra de mi terminal lo confirma: el número de archivos sin seguimiento de mis apuntes pasa de 5 a 6 al clonar y vuelve a 5 después del `echo`.
+
+**4b. Instalo lo que pide el proyecto.** `--locked` instala exactamente las versiones de `uv.lock`, las mismas que mis compañeros. Crea la carpeta `.venv`, que el repo ignora en su `.gitignore`. Salida en [04b-uv-sync.txt](evidencias/04b-uv-sync.txt).
+
+```bash
+cd gitanddocs
+uv sync --locked
+```
+
+Instala 11 paquetes, entre ellos `zensical==0.0.65` y `pyyaml==6.0.3`. PyYAML viene porque lo necesita Zensical.
+
+**4c. Leo el archivo como YAML:**
+
+```bash
+uv run python -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/ISSUE_TEMPLATE/config.yml
+```
+
+| Trozo | Qué hace |
+|---|---|
+| `uv run` | Ejecuta dentro de `.venv`, donde está PyYAML. El `python3` del Mac no lo tiene |
+| `python -c "..."` | Ejecuta el programa corto que va entre comillas |
+| `yaml.safe_load(open(sys.argv[1]))` | Abre el archivo que pongo al final y lo lee como YAML |
+
+Si el archivo es válido no sale nada. Aquí sale un error (salida completa en [04c-validar-yaml.txt](evidencias/04c-validar-yaml.txt)). Lo importante son las dos últimas líneas:
+
+```text
+yaml.scanner.ScannerError: mapping values are not allowed here
+  in ".github/ISSUE_TEMPLATE/config.yml", line 2, column 21
+```
+
+Cómo se lee:
+
+- Un error de Python (*traceback*) se lee **de abajo arriba**. Las líneas de en medio son el camino que ha seguido PyYAML por dentro y no me interesan.
+- **Línea 2, columna 21** es el `:` de `blank_issues_enabled:`, porque `blank_issues_enabled` tiene 20 letras.
+- La línea 1 (`cat > ...`) no es `clave: valor`, así que YAML la toma como un texto suelto y cree que la línea 2 es la continuación de ese texto. Al llegar al `:` se encuentra un `clave: valor` en medio de un texto y protesta: "mapping values are not allowed here" (aquí no se permite un `clave: valor`).
+
+Con esto tengo el error exacto para ponerlo en la issue.

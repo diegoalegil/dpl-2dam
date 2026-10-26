@@ -1,0 +1,12 @@
+$ cd "$HOME/Desktop/DAM 2do Año/DPL"
+
+$ gh repo clone monium/gitanddocs
+Clonando en 'gitanddocs'...
+remote: Enumerating objects: 175, done.
+remote: Counting objects: 100% (88/88), done.
+remote: Compressing objects: 100% (50/50), done.
+remote: Total 175 (delta 48), reused 52 (delta 38), pack-reused 87 (from 1)
+Recibiendo objetos: 100% (175/175), 343.37 KiB | 2.43 MiB/s, listo.
+Resolviendo deltas: 100% (74/74), listo.
+
+$ echo "gitanddocs/" >> .git/info/exclude
