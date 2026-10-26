@@ -371,3 +371,77 @@ diego@diego:~$ ssh-keygen -F '[127.0.0.1]:2222' -l
 Aunque solo acepté la ED25519, el cliente ha guardado también la RSA y la ECDSA. Lo hace la opción `UpdateHostKeys`: cuando la conexión ya es de confianza, el servidor le pasa el resto de sus claves.
 
 Evidencia completa: [evidencias/04-usuario-y-contrasena.txt](evidencias/04-usuario-y-contrasena.txt)
+
+---
+
+## Paso 5: Generar el par de claves en el cliente
+
+Esto se hace **en mi equipo**, no en el servidor. La clave privada nunca tiene que salir de la máquina desde la que me conecto.
+
+Antes miro qué tengo en `~/.ssh` para no pisar nada:
+
+```text
+diego@diego:~$ ls -l ~/.ssh
+-rw------- 1 diego diego  411 oct  6 16:00 id_ed25519
+-rw-r--r-- 1 diego diego  103 oct  6 16:00 id_ed25519.pub
+-rw------- 1 diego diego 1956 oct 26 19:23 known_hosts
+-rw------- 1 diego diego 1120 oct 26 19:23 known_hosts.old
+```
+
+Ya tengo una `id_ed25519`, la de GitHub. Si ejecutara `ssh-keygen` sin más, me preguntaría si quiero sobrescribirla y, si dijera que sí, dejaría de funcionarme GitHub. Por eso genero la de la práctica con otro nombre usando `-f`:
+
+```text
+diego@diego:~$ ssh-keygen -t ed25519 -C "diego@practica-ssh" -f ~/.ssh/id_ed25519_dpl
+Generating public/private ed25519 key pair.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/diego/.ssh/id_ed25519_dpl
+Your public key has been saved in /home/diego/.ssh/id_ed25519_dpl.pub
+The key fingerprint is:
+SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 diego@practica-ssh
+The key's randomart image is:
++--[ED25519 256]--+
+|       ...       |
+|       .=. .     |
+|       .oo. .o   |
+|       .. ooo .  |
+|        S+oB   . |
+|       .ooB.. o o|
+|        .+.oo. oE|
+|          ++++o*B|
+|          +B.+O+B|
++----[SHA256]-----+
+```
+
+| Opción | Para qué |
+|---|---|
+| `-t ed25519` | Tipo de clave. ED25519 es la recomendada hoy: segura, rápida y corta. RSA solo si hay que conectar con equipos muy antiguos (y entonces `-b 4096`) |
+| `-C "diego@practica-ssh"` | Comentario que va al final de la clave pública. Sirve para saber de quién es cuando en el servidor haya varias |
+| `-f ~/.ssh/id_ed25519_dpl` | Dónde guardarla. Así no piso la clave que ya tengo |
+
+**Le pongo passphrase.** Es una contraseña que cifra la clave privada dentro del archivo. Si alguien me copia `id_ed25519_dpl`, sin la passphrase no le sirve. Se nota en el tamaño: mi clave de GitHub (sin passphrase) ocupa 411 bytes y esta 464, porque va cifrada. Ojo: esta passphrase no es la contraseña del usuario del servidor. Es solo para desbloquear mi clave en mi equipo.
+
+Resultado:
+
+```text
+diego@diego:~$ ls -l ~/.ssh
+-rw------- 1 diego diego  464 oct 26 19:29 id_ed25519_dpl
+-rw-r--r-- 1 diego diego  100 oct 26 19:29 id_ed25519_dpl.pub
+...
+diego@diego:~$ cat ~/.ssh/id_ed25519_dpl.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID1cLOG0rlW8cgerCMLxkr20hMuX2luRs4fGpo3sz1gf diego@practica-ssh
+```
+
+| Archivo | Qué es | Permisos |
+|---|---|---|
+| `id_ed25519_dpl` | Clave **privada**. No se comparte nunca | `600`: solo yo la puedo leer. `ssh-keygen` ya la crea así |
+| `id_ed25519_dpl.pub` | Clave **pública**. Es la que va al servidor y se puede enseñar sin problema | `644` |
+
+Apunto la huella de mi clave para luego comprobar en el servidor que la que ha llegado es esta:
+
+```text
+diego@diego:~$ ssh-keygen -lf ~/.ssh/id_ed25519_dpl.pub
+256 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 diego@practica-ssh (ED25519)
+```
+
+Evidencia completa: [evidencias/05-generar-claves.txt](evidencias/05-generar-claves.txt)
