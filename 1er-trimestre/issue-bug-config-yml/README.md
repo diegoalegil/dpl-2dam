@@ -235,3 +235,40 @@ La rama `issue-41` apunta al mismo commit que `main` (`dbcb5e1`): de momento es 
 La issue ya es mía y empiezo a trabajar, así que en la columna derecha, en **Projects** > **DPL** > **Status**, la paso de **Sin asignar** a **En progreso**. En la actividad de la issue queda apuntado: "moved this from Sin asignar to En progreso in DPL".
 
 ![Status En progreso en el tablero DPL](evidencias/06c-tablero-en-progreso.png)
+
+## Paso 7: Arreglo el archivo en la rama
+
+Lo hago con el editor de la web, en mi rama. Abro el archivo con `issue-41` en la dirección, en vez de `main`: [`config.yml` en `issue-41`](https://github.com/monium/gitanddocs/blob/issue-41/.github/ISSUE_TEMPLATE/config.yml). Antes de tocar nada miro arriba a la izquierda que el selector de rama dice `issue-41`. Los cambios nunca van directamente a `main`.
+
+Pulso el lápiz (**Edit this file**) y dejo el archivo así:
+
+```yaml
+blank_issues_enabled: false
+contact_links:
+  - name: Pregunta general
+    url: https://monium.github.io/gitanddocs/
+    about: Si no sabes qué tipo de issue crear, consulta aquí primero.
+```
+
+- Quito la línea 1 (`cat > ... << 'EOF'`) y la línea 7 (`EOF`).
+- Cambio la `url` del enlace de ayuda por la web de la documentación de clase.
+- Reviso la sangría, porque en YAML importa: `- name` lleva 2 espacios y `url` y `about` 4, debajo de `name`.
+- Dejo un salto de línea al final, como en el original.
+
+El editor pone "config.yml in issue-41" y un aviso: "Looks like this file is an issue template config". GitHub reconoce qué tipo de archivo es.
+
+Con **Commit changes...** relleno la ventana del commit:
+
+| Campo | Valor |
+|---|---|
+| Commit message | `Arreglo el config.yml de las plantillas de issue (#41)` |
+| Extended description | Quito la primera y la última línea, que eran el comando de la terminal con el que se creó el archivo y hacían que no fuera YAML válido. También cambio el enlace de ayuda para que lleve a la web de la documentación de la clase. |
+| Commit Email | `diegogildam@gmail.com` |
+| Opción | Commit directly to the `issue-41` branch |
+
+- El `(#41)` del mensaje enlaza el commit con la issue.
+- La ventana trae un mensaje propuesto por GitHub. Lo sustituyo por el mío y no pulso el botón que lo vuelve a generar.
+
+Resultado: commit `0507324` en `issue-41`, con 1 archivo cambiado (+1 −3). El archivo queda en 5 líneas y 189 bytes. Como lo hago desde la web, GitHub firma el commit y sale como **Verified**.
+
+![El archivo arreglado en la rama issue-41](evidencias/07-archivo-arreglado.png)
