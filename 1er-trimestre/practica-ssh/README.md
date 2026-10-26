@@ -115,3 +115,85 @@ Connection reset by 127.0.0.1 port 2222
 **Primer error y por qué sale este y no otro:** esperaba un `Connection refused`, que es lo que pone en la guía de referencia cuando el servidor SSH no está arrancado. Pero sale `Connection reset by peer`. La causa es que el puerto 2222 de mi equipo sí está abierto, porque lo abre Docker para redirigirlo. Docker acepta la conexión, intenta pasarla al puerto 22 del contenedor, ahí no escucha nadie y corta. En una máquina real sin SSH sí saldría `Connection refused`. Esto me sirve luego para reconocer el fallo: si veo `kex_exchange_identification` justo al conectar, el problema está en el servidor y no en mis claves.
 
 Evidencia completa: [evidencias/01-maquina-recien-instalada.txt](evidencias/01-maquina-recien-instalada.txt)
+
+---
+
+## Paso 2: Instalar el servidor SSH
+
+Desde la consola de la máquina actualizo la lista de paquetes e instalo el servidor SSH y `sudo`:
+
+```bash
+apt update
+apt install -y openssh-server sudo
+```
+
+- `openssh-server` es el servidor (`sshd`), el programa que atiende las conexiones.
+- `sudo` lo instalo porque en Debian, si al instalar se pone contraseña a root, no viene. Lo voy a necesitar para administrar la máquina desde mi usuario normal cuando entre por SSH.
+
+`apt` instala 58 paquetes, porque `openssh-server` arrastra dependencias, entre ellas `systemd`:
+
+```text
+Summary:
+  Upgrading: 0, Installing: 58, Removing: 0, Not Upgrading: 1
+  Download size: 15.9 MB
+  Space needed: 55.4 MB / 80.7 GB available
+```
+
+Durante la instalación salen estas líneas:
+
+```text
+invoke-rc.d: could not determine current runlevel
+invoke-rc.d: policy-rc.d denied execution of start.
+```
+
+No es un fallo de la instalación. Las imágenes de Docker traen un script, `/usr/sbin/policy-rc.d`, que termina con `exit 101` y le prohíbe a `apt` arrancar servicios al instalarlos. En una máquina Debian normal, el servicio SSH se quedaría arrancado nada más instalarlo. Aquí lo tendré que arrancar a mano en el paso 3.
+
+Compruebo qué ha dejado la instalación:
+
+```text
+root@servidor-ssh:/# which ssh sshd sudo
+/usr/bin/ssh
+/usr/sbin/sshd
+/usr/bin/sudo
+
+root@servidor-ssh:/# ls -l /etc/ssh
+-rw-r--r-- 1 root root 592383 May  6 12:33 moduli
+-rw-r--r-- 1 root root   1668 May  6 12:33 ssh_config
+drwxr-xr-x 2 root root   4096 Oct 26 19:09 ssh_config.d
+-rw------- 1 root root    513 Oct 26 19:09 ssh_host_ecdsa_key
+-rw-r--r-- 1 root root    179 Oct 26 19:09 ssh_host_ecdsa_key.pub
+-rw------- 1 root root    411 Oct 26 19:09 ssh_host_ed25519_key
+-rw-r--r-- 1 root root     99 Oct 26 19:09 ssh_host_ed25519_key.pub
+-rw------- 1 root root   2602 Oct 26 19:09 ssh_host_rsa_key
+-rw-r--r-- 1 root root    571 Oct 26 19:09 ssh_host_rsa_key.pub
+-rw-r--r-- 1 root root   3424 May  6 12:33 sshd_config
+drwxr-xr-x 2 root root   4096 May  6 12:33 sshd_config.d
+```
+
+| Archivo | Qué es |
+|---|---|
+| `sshd_config` | Configuración del servidor |
+| `sshd_config.d/` | Carpeta para añadir configuración en archivos aparte. Ahora está vacía |
+| `ssh_config` | Configuración del cliente `ssh` de esta máquina (no la del servidor) |
+| `ssh_host_*_key` y `.pub` | Las claves propias de la máquina. Son como su DNI: el cliente las usa para comprobar que se conecta siempre a la misma máquina. Se han creado al instalar (19:09). Las privadas tienen permisos `600` y solo las puede leer root |
+
+En `sshd_config` me fijo en lo que voy a tocar más adelante:
+
+```text
+12:Include /etc/ssh/sshd_config.d/*.conf
+33:#PermitRootLogin prohibit-password
+38:#PubkeyAuthentication yes
+57:#PasswordAuthentication yes
+64:KbdInteractiveAuthentication no
+87:UsePAM yes
+```
+
+- Las líneas con `#` están comentadas y muestran el valor por defecto. Por defecto **se permite la contraseña** (`PasswordAuthentication yes`) y también la clave pública.
+- `PermitRootLogin prohibit-password`: root solo podría entrar con clave, nunca con contraseña.
+- El `Include` de la línea 12 está **al principio**. Esto es importante para el paso 8: lo que ponga en `sshd_config.d/` se lee antes que el resto del archivo, y en `sshd_config` gana el primer valor que se lee de cada opción.
+
+También se crea el usuario del sistema `sshd`, que no puede iniciar sesión (`/usr/sbin/nologin`). El servidor lo usa para aislar la parte que habla con la red y no hacerlo todo como root.
+
+La versión del servidor es `OpenSSH_10.0p2 Debian-7+deb13u4`, más nueva que la de mi cliente (`OpenSSH_9.6p1`).
+
+Evidencia completa (con la salida entera de `apt`): [evidencias/02-instalar-ssh.txt](evidencias/02-instalar-ssh.txt)
