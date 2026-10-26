@@ -1,0 +1,14 @@
+$ cd "$HOME/Desktop/DAM 2do Año/DPL/gitanddocs"
+
+$ git fetch origin
+remote: Enumerating objects: 5, done.
+remote: Counting objects: 100% (5/5), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 5 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Desempaquetando objetos: 100% (5/5), 1.81 KiB | 370.00 KiB/s, listo.
+Desde https://github.com/monium/gitanddocs
+ * [nueva rama]      issue-41   -> origin/issue-41
+
+$ git switch issue-41
+rama 'issue-41' configurada para rastrear 'origin/issue-41'.
+Cambiado a nueva rama 'issue-41'

@@ -1,0 +1,42 @@
+$ git status
+En la rama issue-41
+Tu rama está actualizada con 'origin/issue-41'.
+
+nada para hacer commit, el árbol de trabajo está limpio
+
+$ cat .github/ISSUE_TEMPLATE/config.yml
+blank_issues_enabled: false
+contact_links:
+  - name: Pregunta general
+    url: https://monium.github.io/gitanddocs/
+    about: Si no sabes qué tipo de issue crear, consulta aquí primero.
+
+$ uv run python -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/ISSUE_TEMPLATE/config.yml
+(sin salida: es YAML válido)
+
+$ uv run python -c "import yaml,sys; print(yaml.safe_load(open(sys.argv[1])))" .github/ISSUE_TEMPLATE/config.yml
+{'blank_issues_enabled': False, 'contact_links': [{'name': 'Pregunta general', 'url': 'https://monium.github.io/gitanddocs/', 'about': 'Si no sabes qué tipo de issue crear, consulta aquí primero.'}]}
+
+$ git diff main..issue-41
+diff --git a/.github/ISSUE_TEMPLATE/config.yml b/.github/ISSUE_TEMPLATE/config.yml
+index 48e2129..4523f82 100644
+--- a/.github/ISSUE_TEMPLATE/config.yml
++++ b/.github/ISSUE_TEMPLATE/config.yml
+@@ -1,7 +1,5 @@
+-cat > .github/ISSUE_TEMPLATE/config.yml << 'EOF'
+ blank_issues_enabled: false
+ contact_links:
+   - name: Pregunta general
+-    url: https://github.com/orgs/community/discussions
++    url: https://monium.github.io/gitanddocs/
+     about: Si no sabes qué tipo de issue crear, consulta aquí primero.
+-EOF
+
+$ uv run zensical build --clean
+Build started
+No issues found
+Build finished in 0.25s
+
+$ rm -rf site
+$ git status --short
+(sin salida: no queda nada sin guardar)

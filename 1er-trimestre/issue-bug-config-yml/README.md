@@ -272,3 +272,41 @@ Con **Commit changes...** relleno la ventana del commit:
 Resultado: commit `0507324` en `issue-41`, con 1 archivo cambiado (+1 −3). El archivo queda en 5 líneas y 189 bytes. Como lo hago desde la web, GitHub firma el commit y sale como **Verified**.
 
 ![El archivo arreglado en la rama issue-41](evidencias/07-archivo-arreglado.png)
+
+## Paso 8: Compruebo el YAML arreglado
+
+En la web el archivo parece correcto, pero lo demuestro con el mismo comando que en el paso 4 daba el error.
+
+**8a. Traigo la rama a mi Mac.** Salida en [08a-traer-rama.txt](evidencias/08a-traer-rama.txt).
+
+```bash
+cd "$HOME/Desktop/DAM 2do Año/DPL/gitanddocs"
+git fetch origin
+git switch issue-41
+```
+
+- `git fetch origin` descarga las ramas y commits nuevos de GitHub sin tocar mis archivos. Sale `* [nueva rama] issue-41 -> origin/issue-41`. `origin` es el nombre que mi Mac le da a GitHub y `origin/issue-41` es su copia de la rama.
+- `git switch issue-41` me cambia a la rama. Sale `rama 'issue-41' configurada para rastrear 'origin/issue-41'`, es decir, mi rama local queda conectada con la de GitHub. GitHub sugiere `git checkout issue-41`, que hace lo mismo. `switch` es la forma moderna.
+
+**8b. Compruebo el arreglo.** Salida completa en [08b-comprobar-arreglo.txt](evidencias/08b-comprobar-arreglo.txt).
+
+```bash
+uv run python -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/ISSUE_TEMPLATE/config.yml
+```
+
+No sale nada: **es YAML válido**. Si cambio `yaml.safe_load(...)` por `print(yaml.safe_load(...))`, se ve lo que lee PyYAML:
+
+```text
+{'blank_issues_enabled': False, 'contact_links': [{'name': 'Pregunta general', 'url': 'https://monium.github.io/gitanddocs/', 'about': 'Si no sabes qué tipo de issue crear, consulta aquí primero.'}]}
+```
+
+Con `git diff main..issue-41` veo todo lo que cambia mi rama respecto a `main`: se van la línea del `cat`, la `url` vieja y el `EOF`, y entra la `url` nueva.
+
+Por último paso la comprobación que pide el equipo antes de un PR, aunque mi cambio no toca `docs/`:
+
+```bash
+uv run zensical build --clean
+rm -rf site
+```
+
+Sale "No issues found". Borro `site/`, que es la web generada y no se sube nunca, y `git status` queda limpio.
