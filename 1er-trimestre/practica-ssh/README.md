@@ -445,3 +445,60 @@ diego@diego:~$ ssh-keygen -lf ~/.ssh/id_ed25519_dpl.pub
 ```
 
 Evidencia completa: [evidencias/05-generar-claves.txt](evidencias/05-generar-claves.txt)
+
+---
+
+## Paso 6: Copiar la clave pública al servidor
+
+Para que el servidor me deje entrar con mi clave, la clave **pública** tiene que estar en el archivo `~/.ssh/authorized_keys` del usuario con el que entro (`/home/usuario/.ssh/authorized_keys`). La forma más cómoda es `ssh-copy-id`, que se conecta con contraseña una última vez y la añade:
+
+```text
+diego@diego:~$ ssh-copy-id -i ~/.ssh/id_ed25519_dpl.pub -p 2222 usuario@127.0.0.1
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/diego/.ssh/id_ed25519_dpl.pub"
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+usuario@127.0.0.1's password:
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh -p 2222 'usuario@127.0.0.1'"
+and check to make sure that only the key(s) you wanted were added.
+```
+
+Qué hace por dentro:
+1. Primero intenta entrar con la clave para ver si ya estaba instalada y no duplicarla. En el log del servidor sale como `Connection closed by authenticating user usuario ... [preauth]`, que es ese intento fallido.
+2. Como no estaba, entra con la contraseña del usuario.
+3. Crea `~/.ssh` si no existe, añade la clave a `authorized_keys` y pone los permisos bien.
+
+**Ojo con el `-i`:** le paso la `.pub` de la práctica. Sin `-i`, `ssh-copy-id` copia todas las claves que tenga cargadas el agente (`ssh-add -L`) y, si no hay ninguna, la `~/.ssh/id*.pub` más reciente (lo pone en `man ssh-copy-id`). Con dos claves en `~/.ssh` es fácil acabar copiando al servidor la que no toca, por ejemplo la de GitHub. Con `-i` no hay dudas.
+
+Compruebo en la consola del servidor que ha quedado bien:
+
+```text
+root@servidor-ssh:/# ls -la /home/usuario/.ssh
+drwx------ 2 usuario usuario 4096 Oct 26 19:36 .
+drwx------ 3 usuario usuario 4096 Oct 26 19:36 ..
+-rw------- 1 usuario usuario  100 Oct 26 19:36 authorized_keys
+
+root@servidor-ssh:/# cat /home/usuario/.ssh/authorized_keys
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID1cLOG0rlW8cgerCMLxkr20hMuX2luRs4fGpo3sz1gf diego@practica-ssh
+
+root@servidor-ssh:/# ssh-keygen -lf /home/usuario/.ssh/authorized_keys
+256 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 diego@practica-ssh (ED25519)
+```
+
+- La huella (`SHA256:pRyv...qBY`) es la misma que me dio `ssh-keygen` en mi equipo en el paso 5, así que ha llegado mi clave y entera.
+- Permisos: `~/.ssh` en `700` y `authorized_keys` en `600`, y los dos del usuario `usuario`. Esto es importante: si `sshd` ve que otros pueden escribir en esa carpeta o en ese archivo, ignora la clave (`StrictModes yes`, que viene por defecto). Lo provoco en el apartado de errores.
+
+### Si no hay ssh-copy-id (por ejemplo en Windows)
+
+Se puede hacer lo mismo a mano en una sola línea, que es lo que hace `ssh-copy-id`:
+
+```bash
+cat ~/.ssh/id_ed25519_dpl.pub | ssh -p 2222 usuario@127.0.0.1 \
+  "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```
+
+Es importante usar `>>` (añadir) y no `>` (sobrescribir), o se borrarían las claves que ya hubiera.
+
+Evidencia completa: [evidencias/06-copiar-clave.txt](evidencias/06-copiar-clave.txt)

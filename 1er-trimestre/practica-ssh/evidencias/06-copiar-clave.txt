@@ -1,0 +1,30 @@
+diego@diego:~$ ssh-copy-id -i ~/.ssh/id_ed25519_dpl.pub -p 2222 usuario@127.0.0.1
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/diego/.ssh/id_ed25519_dpl.pub"
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+usuario@127.0.0.1's password: 
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh -p 2222 'usuario@127.0.0.1'"
+and check to make sure that only the key(s) you wanted were added.
+
+
+root@servidor-ssh:/# ls -la /home/usuario/.ssh
+total 12
+drwx------ 2 usuario usuario 4096 Oct 26 19:36 .
+drwx------ 3 usuario usuario 4096 Oct 26 19:36 ..
+-rw------- 1 usuario usuario  100 Oct 26 19:36 authorized_keys
+
+root@servidor-ssh:/# cat /home/usuario/.ssh/authorized_keys
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID1cLOG0rlW8cgerCMLxkr20hMuX2luRs4fGpo3sz1gf diego@practica-ssh
+
+root@servidor-ssh:/# ssh-keygen -lf /home/usuario/.ssh/authorized_keys
+256 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 diego@practica-ssh (ED25519)
+
+root@servidor-ssh:/# tail -4 /var/log/sshd.log
+Connection closed by authenticating user usuario 172.17.0.1 port 35382 [preauth]
+Accepted password for usuario from 172.17.0.1 port 35386 ssh2
+Received disconnect from 172.17.0.1 port 35386:11: disconnected by user
+Disconnected from user usuario 172.17.0.1 port 35386
+
