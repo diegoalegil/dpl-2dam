@@ -502,3 +502,87 @@ cat ~/.ssh/id_ed25519_dpl.pub | ssh -p 2222 usuario@127.0.0.1 \
 Es importante usar `>>` (añadir) y no `>` (sobrescribir), o se borrarían las claves que ya hubiera.
 
 Evidencia completa: [evidencias/06-copiar-clave.txt](evidencias/06-copiar-clave.txt)
+
+---
+
+## Paso 7: Comprobar el acceso con clave
+
+Me conecto indicando la clave de la práctica con `-i`:
+
+```text
+diego@diego:~$ ssh -i ~/.ssh/id_ed25519_dpl -p 2222 usuario@127.0.0.1
+Enter passphrase for key '/home/diego/.ssh/id_ed25519_dpl':
+Linux servidor-ssh 7.0.0-38-generic #38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2 x86_64
+...
+Last login: Mon Oct 26 19:23:23 2026 from 172.17.0.1
+usuario@servidor-ssh:~$ whoami; hostname
+usuario
+servidor-ssh
+usuario@servidor-ssh:~$ exit
+```
+
+Ahora **ya no me pide la contraseña del usuario del servidor**, sino la passphrase de mi clave. Es la diferencia que hay que saber distinguir:
+- `usuario@127.0.0.1's password:` es la contraseña del usuario en el servidor y viaja al servidor (cifrada).
+- `Enter passphrase for key '...'` es la passphrase de mi clave privada. Se queda en mi equipo y solo sirve para descifrar la clave.
+
+Para estar seguro de que ha entrado con la clave y no con otra cosa, lo miro con `-v` (modo detallado):
+
+```text
+diego@diego:~$ ssh -v -i ~/.ssh/id_ed25519_dpl -p 2222 usuario@127.0.0.1 exit 2>&1 | grep -E 'Will attempt|Offering|Server accepts|Authenticated|Authentications that can continue'
+debug1: Authentications that can continue: publickey,password
+debug1: Will attempt key: /home/diego/.ssh/id_ed25519_dpl ED25519 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 explicit
+debug1: Offering public key: /home/diego/.ssh/id_ed25519_dpl ED25519 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 explicit
+debug1: Server accepts key: /home/diego/.ssh/id_ed25519_dpl ED25519 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 explicit
+Authenticated to 127.0.0.1 ([127.0.0.1]:2222) using "publickey".
+```
+
+- `Authentications that can continue: publickey,password`: de momento el servidor acepta las dos formas. En el paso 8 quitaré `password`.
+- `Offering` / `Server accepts`: mi cliente ofrece la clave y el servidor la reconoce porque está en `authorized_keys`.
+- `using "publickey"`: ha entrado con clave.
+
+En el servidor queda registrado igual, con la huella de mi clave:
+
+```text
+Accepted publickey for usuario from 172.17.0.1 port 60028 ssh2: ED25519 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14
+```
+
+### No escribir la passphrase cada vez: ssh-agent
+
+Escribir la passphrase en cada conexión es pesado. El agente SSH guarda la clave desbloqueada en memoria durante la sesión. En Linux Mint ya hay uno en marcha, así que solo añado la clave. Con `-t 2h` hago que la olvide a las 2 horas:
+
+```text
+diego@diego:~$ ssh-add -t 2h ~/.ssh/id_ed25519_dpl
+Enter passphrase for /home/diego/.ssh/id_ed25519_dpl:
+Identity added: /home/diego/.ssh/id_ed25519_dpl (diego@practica-ssh)
+Lifetime set to 7200 seconds
+
+diego@diego:~$ ssh-add -l
+256 SHA256:v6WT/8kWeX9+c57VmgxQuErEwTm2t8mvZwLTltUo/14 diego@practica-ssh (ED25519)
+```
+
+### No escribir el puerto, el usuario y la clave cada vez: ~/.ssh/config
+
+Creo un alias en `~/.ssh/config` (no existía) con todos los datos de la conexión:
+
+```text
+Host servidor-ssh
+    HostName 127.0.0.1
+    Port 2222
+    User usuario
+    IdentityFile ~/.ssh/id_ed25519_dpl
+    IdentitiesOnly yes
+```
+
+- `IdentitiesOnly yes` hace que solo pruebe la clave de `IdentityFile`. Sin esto, el cliente iría probando todas las claves que tenga, también la de GitHub. Con muchas claves, el servidor puede cortar con `Too many authentication failures` antes de llegar a la buena.
+- Le pongo permisos `600` (`chmod 600 ~/.ssh/config`), porque el cliente se niega a usarlo si otros pueden escribir en él.
+
+Ahora basta con el nombre, y gracias al agente no me pide nada:
+
+```text
+diego@diego:~$ ssh servidor-ssh 'whoami; hostname; uptime'
+usuario
+servidor-ssh
+ 19:42:27 up  1:56,  0 users,  load average: 0.00, 0.04, 0.07
+```
+
+Evidencia completa: [evidencias/07-acceso-con-clave.txt](evidencias/07-acceso-con-clave.txt)
