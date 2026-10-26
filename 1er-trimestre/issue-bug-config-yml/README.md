@@ -82,3 +82,17 @@ Lo que se ve:
 - **No aparece el enlace "Pregunta general"** que pide `config.yml`.
 
 Conclusión: GitHub no está aplicando `config.yml`. Esta captura me sirve como prueba del "antes" para la issue.
+
+## Paso 2: Miro el archivo config.yml en GitHub
+
+Abro el archivo en la web: [`.github/ISSUE_TEMPLATE/config.yml`](https://github.com/monium/gitanddocs/blob/main/.github/ISSUE_TEMPLATE/config.yml).
+
+![El archivo config.yml en GitHub](evidencias/02-archivo-config-yml.png)
+
+Lo que se ve:
+
+- **Línea 1:** `cat > .github/ISSUE_TEMPLATE/config.yml << 'EOF'`. Es el comando de la terminal, no YAML.
+- **Líneas 2 a 6:** el YAML bueno.
+- **Línea 7:** `EOF`, el final del heredoc. Tampoco es YAML.
+- Encima del código, GitHub enseña el último commit que tocó el archivo: `1fa505f`, de IvnMD, con el mensaje del PR de las plantillas. Con **History** se ve el historial completo del archivo y con **Blame** quién escribió cada línea.
+- GitHub no muestra ningún aviso de que el archivo esté mal. Lo enseña con colores como si fuera YAML normal y simplemente no lo aplica. Por eso el fallo ha pasado desapercibido casi un mes.
