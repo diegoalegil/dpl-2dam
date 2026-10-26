@@ -200,3 +200,24 @@ Lo de las labels `task` y `security`, que piden dos plantillas y no existen en e
 Al elegir el tablero salen dos campos suyos, **Priority** y **Effort**, que dejo vacíos.
 
 Al crearla, la automatización del tablero la pone en la columna **Sin asignar**. GitHub le da el número **41**, que usaré para la rama (`issue-41`) y para cerrarla desde el PR.
+
+## Paso 6: Creo la rama issue-41 desde la issue
+
+Una rama es una copia del proyecto donde cambio cosas sin tocar `main`, que es la versión buena que se publica. En el equipo las ramas se llaman `issue-` más el número de la issue.
+
+La creo desde la propia issue, así queda enlazada a ella: columna derecha > **Development** > **Create a branch**.
+
+![Ventana para crear la rama](evidencias/06a-crear-rama-issue-41.png)
+
+| Campo | Valor | Por qué |
+|---|---|---|
+| Branch name | `issue-41` | GitHub propone un nombre largo con el título (`41-el-configyml-de-las-plantillas-...`). Lo cambio por la norma del equipo |
+| Repository destination | `monium/gitanddocs` | La rama se crea en el repo de clase |
+| Branch source | `main` | Mi copia sale de la versión buena y actual |
+| What's next | Checkout locally | Me enseña los comandos para traer la rama a mi Mac |
+
+Al pulsar **Create branch** sale "Branch created". En **Development** aparece la rama enlazada a la issue y GitHub me da los comandos para usarla en local (`git fetch origin` y `git checkout issue-41`). Todavía no los ejecuto, porque el arreglo lo hago en la web.
+
+![Rama enlazada en Development](evidencias/06b-rama-enlazada.png)
+
+La rama `issue-41` apunta al mismo commit que `main` (`dbcb5e1`): de momento es una copia exacta.
