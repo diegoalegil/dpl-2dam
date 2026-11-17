@@ -59,7 +59,7 @@ El archivo llegó con el [PR #11](https://github.com/monium/gitanddocs/pull/11),
 6. Creo la rama `issue-41` desde la issue
 7. Arreglo el archivo en la rama
 8. Compruebo el YAML arreglado
-9. Abro el PR y pido revisión
+9. Abro el PR y pido revisión: [#42](https://github.com/monium/gitanddocs/pull/42)
 10. Merge, borro la rama y compruebo el resultado
 
 ## Organización
@@ -310,3 +310,64 @@ rm -rf site
 ```
 
 Sale "No issues found". Borro `site/`, que es la web generada y no se sube nunca, y `git status` queda limpio.
+
+## Paso 9: Abro el PR y pido revisión
+
+Un PR (*pull request*) es la petición de llevar los cambios de mi rama a `main`. Mis compañeros lo revisan y, si lo aprueban, se fusiona.
+
+**9a. Comparo las ramas.** Abro `https://github.com/monium/gitanddocs/compare/main...issue-41`. Arriba sale **base: `main`**, adonde van los cambios, y **compare: `issue-41`**, de donde salen. La flecha va de mi rama hacia `main`.
+
+![Comparación de main con issue-41](evidencias/09a-comparar-ramas.png)
+
+- "Able to merge": se puede fusionar sin conflictos.
+- 1 commit, el mío (`0507324`, **Verified**), y 1 archivo cambiado, con 1 línea añadida y 3 quitadas.
+- En rojo se van la línea del `cat`, la `url` vieja y el `EOF`. En verde entra la `url` nueva.
+
+**9b. Relleno el PR.** Pulso **Create pull request** y sale el formulario con la plantilla de PR del repo (`.github/pull_request_template.md`).
+
+- **Título:** `fix: arreglo el config.yml de las plantillas de issue`. Uso `fix:` como el PR #38, que también arreglaba un fallo. GitHub proponía el título de mi commit, pero le quito el `(#41)`: al fusionar, GitHub añade el número del PR al final y saldrían dos números que se confunden.
+- **Descripción:** la plantilla rellena. El texto completo está en [09-cuerpo-pr.md](evidencias/09-cuerpo-pr.md).
+
+Lo importante de la descripción:
+
+- `- Closes #41` en su propia línea. Al fusionar el PR, GitHub cierra la issue sola.
+- En **Tipo de Cambio** marco **Corrección de errores (bugfix)** y **Configuración / infraestructura**.
+- En **¿Cómo se ha probado?** pongo los comandos de PyYAML y lo que sale en `main` y en `issue-41`. Como el CI solo se ejecuta con push a `main`, añado también el build de Zensical.
+- Aviso del PR #40, que sigue abierto: dice que se puede empezar una issue desde cero con *Blank issue*, y con mi cambio esa opción solo la ve quien tiene permiso de escritura.
+
+Antes de crearlo miro la pestaña **Preview** de arriba abajo: tildes, casillas, bloques de código y enlaces. Después pulso la parte grande del botón **Create pull request**. La flecha de al lado es para *Create draft pull request*, un borrador que todavía no se puede aprobar.
+
+**9c. PR creado: [#42](https://github.com/monium/gitanddocs/pull/42)**, el 26/10/2026.
+
+![El PR #42 recién creado](evidencias/09b-pr-42-creado.png)
+
+- Arriba pone "diegoalegil wants to merge 1 commit into `main` from `issue-41`".
+- **Closes** enlaza a la #41, y en la columna derecha, en **Development**, sale "Successfully merging this pull request may close these issues" con mi issue debajo.
+- Abajo pone "Merging is blocked" y el botón **Merge pull request** está gris. Hasta que haya 3 aprobaciones de gente con permiso de escritura no se puede fusionar.
+
+![Merge bloqueado hasta tener 3 aprobaciones](evidencias/09c-merge-bloqueado.png)
+
+**9d. Columna derecha del PR:**
+
+| Campo | Valor | Por qué |
+|---|---|---|
+| Assignees | `diegoalegil` | El PR es mío |
+| Labels | `bug` | La misma que la issue |
+| Reviewers | `IvnMD`, `jmesmarrero`, `slayaglez` y `Atthemyg` | `main` pide 3 aprobaciones y pido 4 por si alguno tarda. Los cuatro tienen permiso de escritura, que es el que cuenta para la regla |
+
+Los revisores los marco seguidos desde el engranaje de **Reviewers** y hago clic fuera del menú para que se guarde. Cada uno sale con un punto naranja, que significa que tiene la revisión pendiente.
+
+![Asignado, etiqueta y revisores del PR](evidencias/09d-revisores-etiqueta.png)
+
+**9e. Muevo las tarjetas del tablero a En revisión.**
+
+- **La issue #41**, desde su columna derecha (**Projects** > **DPL** > **Status**), pasa de *En progreso* a *En revisión*.
+- **El PR #42.** Al crearlo, la automatización del tablero lo metió en el Project DPL, en *Sin asignar*. Lo paso a *En revisión* desde la columna derecha del PR. Los campos **Size** y **Estimate** los dejo vacíos.
+
+En la vista **Backlog** del tablero mi tarjeta #41 sale en *En revisión*, con un chip **#42** debajo del título: es el PR enlazado.
+
+![La issue #41 en En revisión con el PR #42](evidencias/09e-tablero-en-revision.png)
+
+![El PR #42 en En revisión](evidencias/09f-pr-en-revision.png)
+
+Ahora toca esperar a que mis compañeros lo revisen.
